@@ -10,7 +10,7 @@ Ex: pocket aces hand: {"AS", "AC"}.
 Each model is responsible for keeping track of which cards it has, and simulating drawing future cards
 The overall file will deal the necessary cards at each turn.
 """
-import poker_bot_template
+from basic_bot import basicBot
 import random
 from typing import Optional
 
@@ -32,10 +32,12 @@ RESULT_TO_HAND = {1 : "Royal flush", 2 : "Straight Flush", 3 : "Four of a kind",
 class Deck:
     def __init__(self):
         # Randomly shuffles deck on instantiation
-        self.deck: list[str] = random.shuffle(["2D", "3D", "4D", "5D", "6D", "7D", "8D", "9D", "TD", "JD", "QD", "KD", "AD",
-                                               "2C", "3C", "4C", "5C", "6C", "7C", "8C", "9C", "TC", "JC", "QC", "KC", "AC",
-                                               "2H", "3H", "4H", "5H", "6H", "7H", "8H", "9H", "TH", "JH", "QH", "KH", "AH",
-                                               "2S", "3S", "4S", "5S", "6S", "7S", "8S", "9S", "TS", "JS", "QS", "KS", "AS"])
+        self.deck: list[str] = ["2D", "3D", "4D", "5D", "6D", "7D", "8D", "9D", "TD", "JD", "QD", "KD", "AD",
+                                "2C", "3C", "4C", "5C", "6C", "7C", "8C", "9C", "TC", "JC", "QC", "KC", "AC",
+                                "2H", "3H", "4H", "5H", "6H", "7H", "8H", "9H", "TH", "JH", "QH", "KH", "AH",
+                                "2S", "3S", "4S", "5S", "6S", "7S", "8S", "9S", "TS", "JS", "QS", "KS", "AS"]
+        random.shuffle(self.deck)
+                                 
     
     # Dealing at each phase modifies deck, so no duplicate checking needed
     def deal_pre_flop(self) -> tuple[set[str], set[str]]:
@@ -295,7 +297,7 @@ def choose_winner(p0: tuple[int, list[int]], p1: tuple[int, list[int]]) -> int:
     else:
         return p0[0] < p1[0]
 
-# Main function for poker game
+# Main function, plays a single poker game
 def main():
     # Shuffle deck on instantiation
     deck = Deck()
@@ -307,8 +309,8 @@ def main():
     p1_hand, p2_hand = deck.deal_pre_flop()
 
     # Instantiate each bot
-    p1 = poker_bot_template.exampleBot(p1_hand, set(), STARTING_MONEY)
-    p2 = poker_bot_template.exampleBot(p2_hand, set(), STARTING_MONEY)
+    p1 = basicBot(p1_hand, set(), STARTING_MONEY)
+    p2 = basicBot(p2_hand, set(), STARTING_MONEY)
 
     """
     Blind stage
@@ -331,22 +333,206 @@ def main():
         case "bet":
             current_bet = p1_bet
             pot += p1_bet
+            p1.change_bank(current_bet * -1)
         case "fold":
             print("Player 1 folded")
             p2.change_bank(pot)
-            return        
+            return    
+        case _:
+            # Illegal action, do something?
+            print(f"Illegal action: {p1_action} from Player 1") 
           
     p2_action, p2_bet = p2.choose_move("PF", MIN_BET, current_bet, pot)
+    match p2_action:
+        case "check":
+            pass
+        case "call":
+            pot += current_bet
+            p2.change_bank(current_bet * -1)
+        case "raise":
+            current_bet = p2_bet
+            pot += p2_bet
+            p2.change_bank(current_bet * -1)
+        case "fold":
+            print("Player 2 folded")
+            p1.change_bank(pot)
+            return
+        case _:
+            # Illegal action, do something?
+            print(f"Illegal action: {p2_action} from Player 2")
+            
+    """
+    Flop Stage
+    """
+    # Deals 3 community cards
+    community_cards = deck.deal_flop()
+    p1.community_cards = p1.community_cards.union(community_cards)
+    p2.community_cards = p2.community_cards.union(community_cards)
+
+    # Resets current bet to 0
+    current_bet = 0
+
+    # Player 2 goes first now?
+    p2_action, p2_bet = p2.choose_move("F", MIN_BET, current_bet, pot)
+    match p2_action:
+        case "check":
+            pass
+        case "bet":
+            current_bet = p2_bet
+            pot += p2_bet
+            p2.change_bank(current_bet * -1)
+        case "fold":
+            print("Player 2 folded")
+            p1.change_bank(pot)
+            return
+        case _:
+            # Illegal action, do something?
+            print(f"Illegal action: {p2_action} from Player 2")
+                    
+
+    p1_action, p1_bet = p1.choose_move("F", MIN_BET, current_bet, pot)
     match p1_action:
         case "check":
             pass
         case "call":
             pot += current_bet
+            p1.change_bank(current_bet * -1)
+        case "bet":
+            current_bet = p1_bet
+            pot += p1_bet
+            p1.change_bank(current_bet * -1)
         case "raise":
+            current_bet = p1_bet
+            pot += p1_bet
+            p1.change_bank(current_bet * -1)
+        case "fold":
+            print("Player 1 folded")
+            p2.change_bank(pot)
+            return       
+        case _:
+            # Illegal action, do something?
+            print(f"Illegal action: {p1_action} from Player 1") 
+          
+    """
+    Turn Stage
+    """
+    # Deals 3 community cards
+    community_cards = deck.deal_turn()
+    p1.community_cards = p1.community_cards.union(community_cards)
+    p2.community_cards = p2.community_cards.union(community_cards)
+
+    # Resets current bet to 0
+    current_bet = 0
+
+    # Player 2 still goes first?
+    p2_action, p2_bet = p2.choose_move("T", MIN_BET, current_bet, pot)
+    match p2_action:
+        case "check":
+            pass
+        case "bet":
             current_bet = p2_bet
             pot += p2_bet
+            p2.change_bank(current_bet * -1)
         case "fold":
             print("Player 2 folded")
             p1.change_bank(pot)
-            return      
+            return
+        case _:
+            # Illegal action, do something?
+            print(f"Illegal action: {p2_action} from Player 2")
+                    
 
+    p1_action, p1_bet = p1.choose_move("T", MIN_BET, current_bet, pot)
+    match p1_action:
+        case "check":
+            pass
+        case "call":
+            pot += current_bet
+            p1.change_bank(current_bet * -1)
+        case "bet":
+            current_bet = p1_bet
+            pot += p1_bet
+            p1.change_bank(current_bet * -1)
+        case "raise":
+            current_bet = p1_bet
+            pot += p1_bet
+            p1.change_bank(current_bet * -1)
+        case "fold":
+            print("Player 1 folded")
+            p2.change_bank(pot)
+            return       
+        case _:
+            # Illegal action, do something?
+            print(f"Illegal action: {p1_action} from Player 1")
+
+    """
+    River Stage
+    """
+    # Deals 3 community cards
+    community_cards = deck.deal_river()
+    p1.community_cards = p1.community_cards.union(community_cards)
+    p2.community_cards = p2.community_cards.union(community_cards)
+
+    # Resets current bet to 0
+    current_bet = 0
+
+    # Player 2 still goes first?
+    p2_action, p2_bet = p2.choose_move("R", MIN_BET, current_bet, pot)
+    match p2_action:
+        case "check":
+            pass
+        case "bet":
+            current_bet = p2_bet
+            pot += p2_bet
+            p2.change_bank(current_bet * -1)
+        case "fold":
+            print("Player 2 folded")
+            p1.change_bank(pot)
+            return
+        case _:
+            # Illegal action, do something?
+            print(f"Illegal action: {p2_action} from Player 2")
+                    
+
+    p1_action, p1_bet = p1.choose_move("R", MIN_BET, current_bet, pot)
+    match p1_action:
+        case "check":
+            pass
+        case "call":
+            pot += current_bet
+            p1.change_bank(current_bet * -1)
+        case "bet":
+            current_bet = p1_bet
+            pot += p1_bet
+            p1.change_bank(current_bet * -1)
+        case "raise":
+            current_bet = p1_bet
+            pot += p1_bet
+            p1.change_bank(current_bet * -1)
+        case "fold":
+            print("Player 1 folded")
+            p2.change_bank(pot)
+            return       
+        case _:
+            # Illegal action, do something?
+            print(f"Illegal action: {p1_action} from Player 1")
+    
+    """
+    Showdown stage
+    """
+    # If it reaches this point in the game, both players are still in
+    if(choose_winner(evaluate_hand(p1.hole_cards.union(p1.community_cards)), evaluate_hand(p2.hole_cards.union(p2.community_cards)))):
+        # Player 1 wins
+        p1.change_bank(pot)
+        print(f"Player 1 wins ${pot}!")
+    else:
+        # Player 2 wins
+        p2.change_bank(pot)
+        print(f"Player 2 wins ${pot}!")
+
+    print(f"Player 1: {breakdown_result(evaluate_hand(p1.hole_cards.union(p1.community_cards)))}")
+    print(f"Player 2: {breakdown_result(evaluate_hand(p2.hole_cards.union(p2.community_cards)))}")
+
+
+if __name__ == "__main__":
+    main()

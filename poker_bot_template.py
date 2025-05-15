@@ -32,7 +32,7 @@ class exampleBot:
 
     Your bot has a maximum of 10 seconds to decide what its next move will be
     """
-    def choose_move(self, game_phase: str, blind_amount: int, current_bet: int, pot: int) -> tuple[str, int]:
+    def choose_move(self, game_phase: str, minimum_bet: int, current_bet: int, pot: int) -> tuple[str, int]:
         pass
     
     # Setter for modifying player bank
