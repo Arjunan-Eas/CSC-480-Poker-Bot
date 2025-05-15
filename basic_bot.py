@@ -4,7 +4,7 @@ from dataclasses import dataclass
 class basicBot:
     hole_cards: set[str]
     community_cards: set[str]
-    bank: int
+    bank: float
 
     """
     Basic bot doesn't make any predictions based on cards

@@ -4,7 +4,7 @@ from dataclasses import dataclass
 class exampleBot:
     hole_cards: set[str]
     community_cards: set[str]
-    bank: int
+    bank: float
 
     """
     You can implement this function however you see fit, but at a base level
