@@ -11,13 +11,14 @@ Each model is responsible for keeping track of which cards it has, and simulatin
 The overall file will deal the necessary cards at each turn.
 """
 from basic_bot import basicBot
+from MCTS import MCTS
 import random
 from typing import Optional
 
 # For blind bets
 MIN_BET = 1
 # Starting money for each player
-STARTING_MONEY = 10
+STARTING_MONEY = 100
 # Maps the string representing the card rank to its numerical value
 RANK_TO_VALUE = {'2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9, 'T': 10, 'J': 11, 'Q': 12, 'K': 13, 'A': 14}
 # Reverse mapping
@@ -310,13 +311,11 @@ def main(p1_start_money: float = STARTING_MONEY, p2_start_money: float = STARTIN
     # Deals hole cards to each player
     p1_hand, p2_hand = deck.deal_pre_flop()
 
-    # Instantiate each bot. When using different models, will randomly make one model player 1 and the other player 2
-    if(random.randint(0,1)):
-        p1 = basicBot(p1_hand, set(), p1_start_money)
-        p2 = basicBot(p2_hand, set(), p2_start_money)
-    else:
-        p1 = basicBot(p1_hand, set(), p1_start_money)
-        p2 = basicBot(p2_hand, set(), p2_start_money)
+    # Instantiate each bot.
+    p1 = MCTS(p1_hand, set(), p1_start_money)
+    p2 = basicBot(p2_hand, set(), p2_start_money)
+    print("Player 1 is the model")
+
 
     """
     Blind stage
@@ -346,7 +345,7 @@ def main(p1_start_money: float = STARTING_MONEY, p2_start_money: float = STARTIN
             case "fold":
                 print("Player 1 folded")
                 p2.change_bank(pot)
-                return    
+                return p1.bank, p2.bank   
             case _:
                 # Illegal action, do something?
                 print(f"Illegal action: {p1_action} from Player 1") 
@@ -362,10 +361,14 @@ def main(p1_start_money: float = STARTING_MONEY, p2_start_money: float = STARTIN
                 current_bet = p2_bet
                 pot += p2_bet
                 p2.change_bank(current_bet * -1)
+            case "bet":
+                current_bet = p2_bet
+                pot += p2_bet
+                p2.change_bank(current_bet * -1)     
             case "fold":
                 print("Player 2 folded")
                 p1.change_bank(pot)
-                return
+                return p1.bank, p2.bank
             case _:
                 # Illegal action, do something?
                 print(f"Illegal action: {p2_action} from Player 2")
@@ -398,7 +401,7 @@ def main(p1_start_money: float = STARTING_MONEY, p2_start_money: float = STARTIN
             case "fold":
                 print("Player 1 folded")
                 p2.change_bank(pot)
-                return    
+                return p1.bank, p2.bank   
             case _:
                 # Illegal action, do something?
                 print(f"Illegal action: {p1_action} from Player 1") 
@@ -414,10 +417,14 @@ def main(p1_start_money: float = STARTING_MONEY, p2_start_money: float = STARTIN
                 current_bet = p2_bet
                 pot += p2_bet
                 p2.change_bank(current_bet * -1)
+            case "bet":
+                current_bet = p2_bet
+                pot += p2_bet
+                p2.change_bank(current_bet * -1)                     
             case "fold":
                 print("Player 2 folded")
                 p1.change_bank(pot)
-                return
+                return p1.bank, p2.bank
             case _:
                 # Illegal action, do something?
                 print(f"Illegal action: {p2_action} from Player 2")
@@ -449,7 +456,7 @@ def main(p1_start_money: float = STARTING_MONEY, p2_start_money: float = STARTIN
             case "fold":
                 print("Player 1 folded")
                 p2.change_bank(pot)
-                return    
+                return p1.bank, p2.bank   
             case _:
                 # Illegal action, do something?
                 print(f"Illegal action: {p1_action} from Player 1") 
@@ -465,10 +472,14 @@ def main(p1_start_money: float = STARTING_MONEY, p2_start_money: float = STARTIN
                 current_bet = p2_bet
                 pot += p2_bet
                 p2.change_bank(current_bet * -1)
+            case "bet":
+                current_bet = p2_bet
+                pot += p2_bet
+                p2.change_bank(current_bet * -1)                     
             case "fold":
                 print("Player 2 folded")
                 p1.change_bank(pot)
-                return
+                return p1.bank, p2.bank
             case _:
                 # Illegal action, do something?
                 print(f"Illegal action: {p2_action} from Player 2")
@@ -501,7 +512,7 @@ def main(p1_start_money: float = STARTING_MONEY, p2_start_money: float = STARTIN
             case "fold":
                 print("Player 1 folded")
                 p2.change_bank(pot)
-                return    
+                return p1.bank, p2.bank   
             case _:
                 # Illegal action, do something?
                 print(f"Illegal action: {p1_action} from Player 1") 
@@ -517,10 +528,14 @@ def main(p1_start_money: float = STARTING_MONEY, p2_start_money: float = STARTIN
                 current_bet = p2_bet
                 pot += p2_bet
                 p2.change_bank(current_bet * -1)
+            case "bet":
+                current_bet = p2_bet
+                pot += p2_bet
+                p2.change_bank(current_bet * -1)                
             case "fold":
                 print("Player 2 folded")
                 p1.change_bank(pot)
-                return
+                return p1.bank, p2.bank
             case _:
                 # Illegal action, do something?
                 print(f"Illegal action: {p2_action} from Player 2")
@@ -554,4 +569,12 @@ def main(p1_start_money: float = STARTING_MONEY, p2_start_money: float = STARTIN
     return p1.bank, p2.bank
 
 if __name__ == "__main__":
-    main()
+    rounds = 4
+    p1_bank, p2_bank = STARTING_MONEY, STARTING_MONEY
+    for i in range(rounds):
+        p1_bank, p2_bank = main(p1_bank, p2_bank)
+        if p1_bank <= 0:
+            print("P2 wins!")
+        elif p2_bank <= 0:
+            print("P1 wins!")
+        print(f"After round {i}, P1 bank: {p1_bank}  P2 bank: {p2_bank}")
