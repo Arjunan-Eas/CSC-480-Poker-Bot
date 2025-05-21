@@ -9,69 +9,257 @@ import random
 import time
 import math
 
-suits = ['H', 'D', 'C', 'S']
-ranks = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
 
+class MCTS:
+    def __init__(self, hand, community, money):
+        self.possibilities = ["2D", "3D", "4D", "5D", "6D", "7D", "8D", "9D", "TD", "JD", "QD", "KD", "AD",
+                                "2C", "3C", "4C", "5C", "6C", "7C", "8C", "9C", "TC", "JC", "QC", "KC", "AC",
+                                "2H", "3H", "4H", "5H", "6H", "7H", "8H", "9H", "TH", "JH", "QH", "KH", "AH",
+                                "2S", "3S", "4S", "5S", "6S", "7S", "8S", "9S", "TS", "JS", "QS", "KS", "AS"]
+        self.hole_cards = hand
+        self.community_cards = community
+        self.bank = money
 
-
-class Card:
-    def __init__(self, suit, rank):
-        self.suit = suit
-        self.rank = rank
-
-    #i forget the difference between str and repr
-    def __str__(self):
-        string = str(self.rank)
-        if self.rank == 11:
-            string = 'J'
-        elif self.rank == 12:
-            string = 'Q'
-        elif self.rank == 13:
-            string = 'K'
-        elif self.rank == 14:
-            string = 'A'
-        return string + " of " + self.suit
+    """
+    You can implement this function however you see fit, but at a base level
+    you should have some way of speculatively drawing cards based on the
+    hole cards you have and what community cards are visible
+    """
+    def draw_card(self) -> set[str]:
+        pass
     
-    def __repr__(self):
-        string = str(self.rank)
-        if self.rank == 11:
-            string = 'J'
-        elif self.rank == 12:
-            string = 'Q'
-        elif self.rank == 13:
-            string = 'K'
-        elif self.rank == 14:
-            string = 'A'
-        return string + " of " + self.suit
+    def random_card(self, hand, num_cards=1):
+        possibilities2 = self.possibilities.copy()
+        for card in hand:
+            if card in possibilities2:
+                possibilities2.remove(card)
+        cards = set()
+        for i in range(num_cards):
+            new_card = random.choice(possibilities2)
+            cards.add(new_card)
+            possibilities2.remove(new_card)
+        return cards
+
+    """
+    Different stages are:
+        "PF" = Pre flop
+        "F" = Flop
+        "T" = Turn
+        "R" = River
+
+    The general format is (move, bet)
+    Possible moves: (idk poker so feel free to update this)
+        ("check", 0)        # Only if current bet is 0
+        ("bet", $ amount)   # Only if current bet is 0
+        ("call", $ amount)  # Only if current bet != 0
+        ("raise", $ amount) # Only if current bet != 0 ($ amount is total bet, not just the increase)
+        ("fold", 0)         # Anytime
+
+    bot has a maximum of 15 seconds to decide what its next move will be
+    """
+    def choose_move(self, game_phase: str, minimum_bet: int, current_bet: int, pot: int) -> tuple[str, int]:
+        win_rate = self.simulate()
+        print(f"Model winrate: {win_rate}% at {game_phase}")
+        decision, bet = self.bet_strategy(game_phase, current_bet, pot, win_rate, minimum_bet)
+        print(f"Model decision: {decision}! Bot bets ${bet}")
+        return decision, bet
+
+
     
-    def __eq__(self, other):
-        if isinstance(other, Card):
-            return self.suit == other.suit and self.rank == other.rank
-        return False
+    # Setter for modifying player bank
+    def change_bank(self, amount: int):
+        self.bank += amount
+    # Feel free to include any other utility methods you want
 
-class Deck:
-    global suits, ranks
-    def __init__(self):
-        self.cards = []
-        for suit in suits:
-            for rank in ranks:
-                self.cards.append(Card(suit, rank))
+    # Runs MCTS to simulate the game, returns the win rate
+    def simulate(self):
+        start_time = time.time()
+        communitycopy = self.community_cards.copy()
+        if len(communitycopy) == 0:
+            state = 0
+        elif len(communitycopy) == 3:
+            state = 1
+        elif len(communitycopy) == 4:
+            state = 2
+        elif len(communitycopy) == 5:
+            state = 3
+        root = Tree(state, self.hole_cards.copy(), communitycopy)
+        Node = root
 
-    def shuffle(self):
-        self.cards = []
-        for suit in suits:
-            for rank in ranks:
-                self.cards.append(Card(suit, rank))
-        for i in range(len(self.cards) - 1, 0, -1):
-            j = random.randint(0, i)
-            self.cards[i], self.cards[j] = self.cards[j], self.cards[i]
+        while time.time() - start_time < 15:
+            self.expand(Node, start_time)
+        # print(str(root.visits) + " iterations and " + str(root.wins) + " wins")
+        return root.wins / root.visits
+        
+    def evaluate_hole_cards(self):
+        import poker_main
+        same_suit = True
+        suit = None
+        value = None
+        avg_value = 0
+        pair = True
+        for card in self.hole_cards:
+            # Adds cumulative value
+            avg_value += poker_main.RANK_TO_VALUE[card[0]]
+            # Checks same suit
+            if suit is None:
+                suit = card[1]
+            elif suit != card[1]:
+                    same_suit = False
+            # Checks pair
+            if value is None:
+                value = poker_main.RANK_TO_VALUE[card[0]]
+            elif value != poker_main.RANK_TO_VALUE[card[0]]:
+                pair = False
+        
+        # Score = average card value, with 1.25x multipler for same suit, and 2x multiplier for pair
+        score = avg_value / 2
+        score = score + score * same_suit * 0.25
+        score = score + score * pair
+        return score / 28
+        
 
-    def deal(self):
-        return self.cards.pop()
+
+    # Heuristic function for determining how much to bet
+    # TODO: take opponent bets into account and current stage/pot to minimize losses
+    def bet_strategy(self, game_phase: str, current_bet: int, pot: int, win_rate: float, min_bet: int) -> tuple[str, int]:
+        hole_strength = self.evaluate_hole_cards()
+        heuristic = ((win_rate + hole_strength) / 2) ** 3
+        decision = "fold"
+        bet = 0
+
+        # Strong hand
+        if win_rate > 0.5:
+            if current_bet > 0:
+                if self.bank > current_bet:
+                    bet = min(int(self.bank * heuristic), max(int(pot * heuristic), current_bet))
+                    if bet <= current_bet:
+                        bet = current_bet
+                        decision = "call"
+                    else:
+                        bet = max(bet, current_bet + min_bet)
+                        decision = "raise"
+                else:
+                    bet = self.bank
+                    decision = "call"  # All-in
+            else:
+                bet = int(self.bank * heuristic)
+                if bet <= 0:
+                    bet = 0
+                    decision = "check"
+                else:
+                    decision = "bet"
+
+        # Medium hand, but strong hole cards
+        elif win_rate > 0.4 and hole_strength > 0.7:
+            if current_bet > 0:
+                if self.bank > current_bet:
+                    bet = current_bet
+                    decision = "call"
+                else:
+                    bet = self.bank
+                    decision = "call"  # All-in
+            else:
+                decision = "check"
+                bet = 0
+
+        # Weak hand
+        else:
+            decision = "fold"
+            bet = 0
+
+        return decision, bet
+
     
+    #this is the ucb1 formula
+    #u = w/n + c * sqrt(log(N)/n)
+    def ucb(self, node, parent):
+        if parent != None:
+            if node.visits == 0:
+                node.ucb = 999999999
+            node.ucb = node.wins / node.visits + (2 * (math.log2(parent.visits) / node.visits) ** 0.5)
+
+    def expand(self, Node, start_time):
+        if time.time() - start_time > 15:
+            return
+        if Node.state == 0: 
+            #preflop ##original code here / code below was modified to add a check for the number of children
+            if len(Node.children) == 0:
+                child = Tree(Node.state+1, Node.bothand, Node.community.copy(), Node)
+                child.community = child.community.union(self.random_card(child.bothand.copy().union(child.community), 3)) 
+                Node.add_child(child)
+                self.expand(child, start_time)
+                return
+            #if children exist, sort by ucb and expand the best one
+            elif len(Node.children) > 0.5 * Node.visits ** 0.75: #factor to control exploration
+                for child in Node.children:
+                    self.ucb(child, Node)
+                max_ucb_child = None
+                for child in Node.children:
+                    if max_ucb_child == None:
+                        max_ucb_child = child
+                    elif child.ucb > max_ucb_child.ucb:
+                        max_ucb_child = child
+                Node = max_ucb_child 
+                self.expand(Node, start_time)
+                return
+            #if children exist but we want to explore more do this
+            else:
+                child = Tree(Node.state + 1, Node.bothand, Node.community.copy(), Node)
+                child.community = child.community.union(self.random_card(child.bothand.copy().union(child.community), 3))
+                Node.add_child(child)
+                self.expand(child, start_time)
+                return
+        
+        #if leaf evaluate and propogate
+        if Node.state == 3:
+            import poker_main
+            hand2 = self.random_card(Node.bothand.copy().union(Node.community), 2)
+            value = poker_main.choose_winner(poker_main.evaluate_hand(Node.bothand.copy().union(Node.community.copy())), poker_main.evaluate_hand(hand2.copy().union(Node.community.copy())))
+            if value == -1:
+                value = 1/2
+            Node.wins += value
+            Node.visits += 1
+            while Node.parent != None:
+                Node.parent.wins += value
+                Node.parent.visits += 1
+                Node = Node.parent
+            return
+        
+        #states 1 and 2 only 
+        #if no children expand
+        if len(Node.children) == 0:
+            child = Tree(Node.state+1, Node.bothand, Node.community.copy(), Node)
+            child.community = child.community.union(self.random_card(child.bothand.copy().union(child.community), 1))
+            Node.add_child(child)
+            self.expand(child, start_time)
+            return
+        #if children exist, sort by ucb and expand the best one
+        elif len(Node.children) > 52 - len(Node.bothand) - len(Node.community):
+            for child in Node.children:
+                self.ucb(child, Node)
+            max_ucb_child = None
+            for child in Node.children:
+                if max_ucb_child == None:
+                    max_ucb_child = child
+                if child.ucb > max_ucb_child.ucb:
+                    max_ucb_child = child
+            Node = max_ucb_child
+            self.expand(Node, start_time)
+            return
+        #if children exist but we want to explore more do this
+        else:
+            child = Tree(Node.state + 1, Node.bothand, Node.community.copy(), Node)
+            num_children = len(Node.children)
+            child.community = child.community.union(self.random_card(child.bothand.copy().union(child.community), 1))
+            Node.add_child(child)
+            self.expand(child, start_time)
+            return
+
+
 class Tree:
     def __init__(self, state, bothand, community, parent=None):
-        self.children = []
+        self.children = set()
         self.bothand = bothand
         self.community = community
         self.state = state
@@ -83,15 +271,18 @@ class Tree:
     def add_child(self, child):
         child.parent = self
         child.state = self.state + 1
-        self.children.append(child)
+        self.children.add(child)
+
+    def __hash__(self):
+        return hash((frozenset(self.bothand), frozenset(self.community)))
+
+    def __eq__(self, other):
+        if isinstance(other, Tree):
+            return self.bothand == other.bothand and self.community == other.community
+        return False
+        
 
 class Monte_Carlo:
-    def __init__(self):
-        self.possibilities = []
-        for suit in suits:
-            for rank in ranks:
-                self.possibilities.append(Card(suit, rank))
-
     def random_card(self, hand, num_cards=1):
         possibilities2 = self.possibilities.copy()
         for card in hand:
@@ -102,288 +293,3 @@ class Monte_Carlo:
             cards.append(random.choice(possibilities2))
             possibilities2.remove(cards[i])
         return cards
-
-
-
-    def should_bot_fold(self, bot, community):
-        start_time = time.time()
-        hand1 = bot.copy()
-        communitycopy = community.copy()
-        if len(communitycopy) == 0:
-            state = 0
-        elif len(communitycopy) == 3:
-            state = 1
-        elif len(communitycopy) == 4:
-            state = 2
-        elif len(communitycopy) == 5:
-            state = 3
-        root = Tree(state, hand1, communitycopy)
-        Node = root
-
-        while time.time() - start_time < 10:
-            self.expand(Node, start_time)
-        print(str(root.visits) + " iterations and " + str(root.wins) + " wins")
-        if root.wins / root.visits > 0.5:
-            return False
-        else:
-            return True
-
-    #this is the ucb1 formula
-    #u = w/n + c * sqrt(log(N)/n)
-    def ucb(self, node, parent):
-        if parent != None:
-            if node.visits == 0:
-                node.ucb = 999999999
-            node.ucb = node.wins / node.visits + (2 * (math.log2(parent.visits) / node.visits) ** 0.5)
-
-    def expand(self, Node, start_time):
-        if time.time() - start_time > 10:
-            return
-        #if leaf evaluate and propogate
-        if Node.state == 3:
-            hand2 = self.random_card(Node.bothand.copy() + Node.community.copy(), 2)
-            value = who_won_you_decide(Node.bothand.copy(), hand2.copy(), Node.community.copy())
-            Node.wins += value
-            Node.visits += 1
-            while Node.parent != None:
-                Node.parent.wins += value
-                Node.parent.visits += 1
-                Node = Node.parent
-            return
-        #if no children expand
-        if len(Node.children) == 0:
-            child = Tree(Node.state+1, Node.bothand, Node.community.copy(), Node)
-            if Node.state == 0:
-                child.community = child.community + self.random_card(child.bothand  + child.community, 3) 
-            elif Node.state == 1 or Node.state == 2:
-                child.community = child.community + self.random_card(child.bothand  + child.community, 1)
-            Node.add_child(child)
-            self.expand(child, start_time)
-            return
-        #if children exist, sort by ucb and expand the best one
-        elif len(Node.children) > 0.5 * Node.visits ** 0.75: #factor to control exploration
-            for child in Node.children:
-                self.ucb(child, Node)
-            Node.children.sort(key=lambda x: x.ucb, reverse=True)
-            Node = Node.children[0]
-            self.expand(Node, start_time)
-            return
-        #if children exist but we want to explore more do this
-        else:
-            child = Tree(Node.state + 1, Node.bothand, Node.community.copy(), Node)
-            if Node.state == 0:
-                child.community = child.community + self.random_card(child.bothand  + child.community, 3)
-            elif Node.state == 1 or Node.state == 2:
-                child.community = child.community + self.random_card(child.bothand  + child.community, 1)
-            #states 1 and 2 are the pre turn and pre river and dont have so many children states
-            if (Node.state == 1 or Node.state == 2):
-                if len(Node. children) == 52 - len(Node.bothand) - len(Node.community):
-                    Node.children.sort(key=lambda x: x.ucb, reverse=True)
-                    Node = Node.children[0]
-                    self.expand(Node, start_time)
-                    return
-            #pre flop has an incredible large amount of children ~100k so we dont worry about accidentally 
-            # duplicating a child as checking for duplicates is expensive
-            Node.add_child(child)
-            self.expand(child, start_time)
-            return
-
-
-def poker():
-    deck = Deck()
-    deck.shuffle()
-    bot = []
-    player2 = []
-    community = []
-    for i in range(2):
-        bot.append(deck.deal())
-        player2.append(deck.deal())
-
-    print("Bot's hand: ", bot)
-    print("Player 2's hand: ", player2)
-
-    MC = Monte_Carlo()
-    if (MC.should_bot_fold(bot.copy(), community.copy())):
-        print("Bot folded")
-        for i in range(5):
-            community.append(deck.deal())
-        value = who_won_you_decide(bot, player2, community)
-        if value == 1:
-            print("Bot would have won")
-        elif value == 0:
-            print("Player 2 would have won")
-        else:
-            print("Would have Drew")
-    else:    
-        for i in range(3):
-            community.append(deck.deal())
-        print("Flop: ", community)
-        if (MC.should_bot_fold(bot.copy(), community.copy())):
-            print("Bot folded")
-            community.append(deck.deal())
-            community.append(deck.deal())
-            value = who_won_you_decide(bot, player2, community)
-            if value == 1:
-                print("Bot would have won")
-            elif value == 0:
-                print("Player 2 would have won")
-            else:
-                print("Would have Drew")
-        else:
-            community.append(deck.deal())
-            print("Turn: ", community)
-            if (MC.should_bot_fold(bot.copy(), community.copy())):
-                print("Bot folded")
-                community.append(deck.deal())
-                value = who_won_you_decide(bot, player2, community)
-                if value == 1:
-                    print("Bot would have won")
-                elif value == 0:
-                    print("Player 2 would have won")
-                else:
-                    print("Would have Drew")
-            else:
-                community.append(deck.deal())
-                print("River: ", community)
-                if (MC.should_bot_fold(bot.copy(), community.copy())):
-                    print("Bot folded")
-                    value = who_won_you_decide(bot, player2, community)
-                    if value == 1:
-                        print("Bot would have won")
-                    elif value == 0:
-                        print("Player 2 would have won")
-                    else:
-                        print("Would have Drew")
-                else:
-                    value = who_won_you_decide(bot, player2, community)
-                    if value == 1:
-                        print("Bot wins")
-                    elif value == 0:
-                        print("Player 2 wins")
-                    else:
-                        print("Draw")
-
-    bot = []
-    player2 = []
-    community = []
-
-def who_won_you_decide(hand1, hand2, community):
-    #compare hands
-
-    value1 = hand_value(hand1)
-    value2 = hand_value(hand2)
-    if value1[0] > value2[0]:
-        return 1
-    elif value1[0] < value2[0]:
-        return 0
-    else:
-        if value1[1] > value2[1]:
-            return 1
-        elif value1[1] < value2[1]:
-            return 0
-        else:
-            return 0.5
-
-HIGH_CARD = 0
-PAIR = 1
-TWO_PAIR = 2
-THREE_OF_A_KIND = 3
-STRAIGHT = 4
-FLUSH = 5
-FULL_HOUSE = 6
-FOUR_OF_A_KIND = 7
-STRAIGHT_FLUSH = 8
-ROYAL_FLUSH = 9
-
-#pass in player + community cards
-def hand_value(hand):
-    global HIGH_CARD, PAIR, TWO_PAIR, THREE_OF_A_KIND, STRAIGHT, FLUSH, FULL_HOUSE, FOUR_OF_A_KIND, STRAIGHT_FLUSH, ROYAL_FLUSH
-    values = [0] * 10 #boolean for all possible hands
-    rank = [0] * 10 #boolean for all possible hands
-    hand.sort(key=lambda x: x.rank) #sort hand by rank lowkey took this from google ai
-
-    rank[HIGH_CARD] = max([card.rank for card in hand])
-
-    #recursive four loops look daunting but the size is very small and often for loops will be skipped
-
-    #pair, 3 of a kind, and four of a kind
-    for i in range(len(hand)):
-        for j in range(i + 1, len(hand)):
-            if hand[i].rank == hand[j].rank:
-                values[PAIR] = PAIR
-                rank[PAIR] = max(rank[PAIR], (hand[i].rank))
-                #check for 3 of a kind
-                for k in range(j + 1, len(hand)):
-                    if hand[k].rank == hand[i].rank:
-                        values[THREE_OF_A_KIND] = THREE_OF_A_KIND
-                        rank[THREE_OF_A_KIND] = max(rank[THREE_OF_A_KIND], (hand[i].rank))
-                        #check for four of a kind
-                        for l in range(k + 1, len(hand)):
-                            if hand[l].rank == hand[i].rank:
-                                values[FOUR_OF_A_KIND] = FOUR_OF_A_KIND
-                                rank[FOUR_OF_A_KIND] = max(rank[FOUR_OF_A_KIND], (hand[i].rank))
-    
-    #2 pair, and full house
-    #i dont know how to resolve ties for two pair and full house, ive seen it done in a few different ways
-    if len(hand) >= 4:
-        for i in range(len(hand)):
-            for j in range(i + 1, len(hand)):
-                if hand[i].rank == hand[j].rank:
-                    #check for another different pair
-                    for k in range(i + 1, len(hand)):
-                        if hand[k].rank != hand[i].rank:
-                            for l in range(k + 1, len(hand)):
-                                if hand[k].rank == hand[l].rank:
-                                    values[TWO_PAIR] = TWO_PAIR
-                                    rank[TWO_PAIR] = max(rank[TWO_PAIR], max(hand[k].rank, hand[i].rank))
-                                    #check for full house
-                                    for m in range(i + 1, len(hand)):
-                                        if m != i and m != j and m != k and m != l:
-                                            if hand[m].rank == hand[i].rank or hand[m].rank == hand[k].rank:
-                                                values[FULL_HOUSE] = FULL_HOUSE
-                                                rank[FULL_HOUSE] = max(rank[FULL_HOUSE], max(hand[k].rank, hand[i].rank))
-                            
-    
-    #flush, straight flush, and royal flush
-    if len(hand) >= 5:
-        for i in range(len(hand)):
-            for j in range(i + 1, len(hand)):
-                if hand[i].suit == hand[j].suit:
-                    #check for flush
-                    for k in range(j + 1, len(hand)):
-                        if hand[k].suit == hand[i].suit:
-                            for l in range(k + 1, len(hand)):
-                                if hand[l].suit == hand[i].suit:
-                                    for m in range(l + 1, len(hand)):
-                                        if hand[m].suit == hand[i].suit:
-                                            values[FLUSH] = FLUSH
-                                            rank[FLUSH] = max(rank[FLUSH], max(hand[i].rank, hand[j].rank, hand[k].rank, hand[l].rank, hand[m].rank))
-                                            #check for straight flush
-                                            if (hand[m].rank == hand[l].rank + 1 or (hand[m].rank == 14 and hand[i].rank == 2)) and hand[l].rank == hand[k].rank + 1 and hand[k].rank == hand[j].rank + 1 and hand[j].rank == hand[i].rank + 1:
-                                                values[STRAIGHT_FLUSH] = STRAIGHT_FLUSH
-                                                rank[STRAIGHT_FLUSH] = max(rank[STRAIGHT_FLUSH], hand[l].rank)
-                                                #check for royal flush
-                                                if hand[i].rank == 10 and hand[j].rank == 11 and hand[k].rank == 12 and hand[l].rank == 13 and hand[m].rank == 14:
-                                                    values[ROYAL_FLUSH] = ROYAL_FLUSH
-                                                    
-                                    
-                            
-
-    #straight
-    if len(hand) >= 5:
-        for i in range(len(hand)):
-            for j in range(i + 1, len(hand)):
-                if hand[i].rank == hand[j].rank + 1:
-                    for k in range(j + 1, len(hand)):
-                        if hand[k].rank == hand[j].rank + 1:
-                            for l in range(k + 1, len(hand)):
-                                if hand[l].rank == hand[k].rank + 1:
-                                    for m in range(l + 1, len(hand)):
-                                        if (hand[m].rank == hand[l].rank + 1 or (hand[m].rank == 14 and hand[i].rank == 2)):
-                                            values[STRAIGHT] = STRAIGHT
-                                            rank[STRAIGHT] = max(rank[STRAIGHT], hand[l].rank)
-    return (max(values), rank[max(values)])
-    
-
-if __name__ == "__main__":
-    poker()
