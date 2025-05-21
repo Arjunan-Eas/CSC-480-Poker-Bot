@@ -8,7 +8,6 @@
 import random
 import time
 import math
-import poker_main
 
 
 class MCTS:
@@ -59,18 +58,12 @@ class MCTS:
     bot has a maximum of 15 seconds to decide what its next move will be
     """
     def choose_move(self, game_phase: str, minimum_bet: int, current_bet: int, pot: int) -> tuple[str, int]:
-        should_bot_fold = self.should_bot_fold()
-        if should_bot_fold:
-            return "fold", 0
-        if current_bet == 0:
-            return "check", 0
-        elif current_bet > 0 and self.bank >= current_bet:
-            return "call", current_bet
-        elif current_bet > 0 and self.bank < current_bet:
-            return "call", self.bank
-        # do this shit later gang
-        # elif current_bet > 0 and self.bank >= minimum_bet:
-        #     return "raise", $$$$
+        win_rate = self.simulate()
+        print(f"Model winrate: {win_rate}% at {game_phase}")
+        decision, bet = self.bet_strategy(game_phase, current_bet, pot, win_rate, minimum_bet)
+        print(f"Model decision: {decision}! Bot bets ${bet}")
+        return decision, bet
+
 
     
     # Setter for modifying player bank
@@ -78,8 +71,8 @@ class MCTS:
         self.bank += amount
     # Feel free to include any other utility methods you want
 
-
-    def should_bot_fold(self):
+    # Runs MCTS to simulate the game, returns the win rate
+    def simulate(self):
         start_time = time.time()
         communitycopy = self.community_cards.copy()
         if len(communitycopy) == 0:
@@ -95,12 +88,89 @@ class MCTS:
 
         while time.time() - start_time < 15:
             self.expand(Node, start_time)
-        print(str(root.visits) + " iterations and " + str(root.wins) + " wins")
-        if root.wins / root.visits > 0.5:
-            return False
-        else:
-            return True
+        # print(str(root.visits) + " iterations and " + str(root.wins) + " wins")
+        return root.wins / root.visits
+        
+    def evaluate_hole_cards(self):
+        import poker_main
+        same_suit = True
+        suit = None
+        value = None
+        avg_value = 0
+        pair = True
+        for card in self.hole_cards:
+            # Adds cumulative value
+            avg_value += poker_main.RANK_TO_VALUE[card[0]]
+            # Checks same suit
+            if suit is None:
+                suit = card[1]
+            elif suit != card[1]:
+                    same_suit = False
+            # Checks pair
+            if value is None:
+                value = poker_main.RANK_TO_VALUE[card[0]]
+            elif value != poker_main.RANK_TO_VALUE[card[0]]:
+                pair = False
+        
+        # Score = average card value, with 1.25x multipler for same suit, and 2x multiplier for pair
+        score = avg_value / 2
+        score = score + score * same_suit * 0.25
+        score = score + score * pair
+        return score / 28
+        
 
+
+    # Heuristic function for determining how much to bet
+    # TODO: take opponent bets into account and current stage/pot to minimize losses
+    def bet_strategy(self, game_phase: str, current_bet: int, pot: int, win_rate: float, min_bet: int) -> tuple[str, int]:
+        hole_strength = self.evaluate_hole_cards()
+        heuristic = ((win_rate + hole_strength) / 2) ** 3
+        decision = "fold"
+        bet = 0
+
+        # Strong hand
+        if win_rate > 0.5:
+            if current_bet > 0:
+                if self.bank > current_bet:
+                    bet = min(int(self.bank * heuristic), max(int(pot * heuristic), current_bet))
+                    if bet <= current_bet:
+                        bet = current_bet
+                        decision = "call"
+                    else:
+                        bet = max(bet, current_bet + min_bet)
+                        decision = "raise"
+                else:
+                    bet = self.bank
+                    decision = "call"  # All-in
+            else:
+                bet = int(self.bank * heuristic)
+                if bet <= 0:
+                    bet = 0
+                    decision = "check"
+                else:
+                    decision = "bet"
+
+        # Medium hand, but strong hole cards
+        elif win_rate > 0.4 and hole_strength > 0.7:
+            if current_bet > 0:
+                if self.bank > current_bet:
+                    bet = current_bet
+                    decision = "call"
+                else:
+                    bet = self.bank
+                    decision = "call"  # All-in
+            else:
+                decision = "check"
+                bet = 0
+
+        # Weak hand
+        else:
+            decision = "fold"
+            bet = 0
+
+        return decision, bet
+
+    
     #this is the ucb1 formula
     #u = w/n + c * sqrt(log(N)/n)
     def ucb(self, node, parent):
@@ -143,6 +213,7 @@ class MCTS:
         
         #if leaf evaluate and propogate
         if Node.state == 3:
+            import poker_main
             hand2 = self.random_card(Node.bothand.copy().union(Node.community), 2)
             value = poker_main.choose_winner(poker_main.evaluate_hand(Node.bothand.copy().union(Node.community.copy())), poker_main.evaluate_hand(hand2.copy().union(Node.community.copy())))
             if value == -1:
