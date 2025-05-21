@@ -345,7 +345,11 @@ def main(p1: Union[basicBot, MinimaxBot, MCTS], p2: Union[basicBot, MinimaxBot, 
             case _:
                 # Illegal action, do something?
                 print(f"Illegal action: {p1_action} from Player 1") 
-            
+
+        # Continues the betting loop until players have the same bet
+        if(p1_bet == current_bet and p2_bet == current_bet and everyone_has_bet):
+            break       
+                    
         p2_action, p2_bet = p2.choose_move("PF", MIN_BET, current_bet, pot, p1.bank)
         match p2_action:
             case "check":
@@ -368,6 +372,9 @@ def main(p1: Union[basicBot, MinimaxBot, MCTS], p2: Union[basicBot, MinimaxBot, 
             case _:
                 # Illegal action, do something?
                 print(f"Illegal action: {p2_action} from Player 2")
+
+        # Goes true after everyone has done their initial bets
+        everyone_has_bet = True
 
         # Continues the betting loop until players have the same bet
         if(p1_bet == current_bet and p2_bet == current_bet):
@@ -405,6 +412,10 @@ def main(p1: Union[basicBot, MinimaxBot, MCTS], p2: Union[basicBot, MinimaxBot, 
                 # Illegal action, do something?
                 print(f"Illegal action: {p1_action} from Player 1") 
             
+        # Continues the betting loop until players have the same bet
+        if(p1_bet == current_bet and p2_bet == current_bet and everyone_has_bet):
+            break       
+
         p2_action, p2_bet = p2.choose_move("F", MIN_BET, current_bet, pot, p1.bank)
         match p2_action:
             case "check":
@@ -428,6 +439,9 @@ def main(p1: Union[basicBot, MinimaxBot, MCTS], p2: Union[basicBot, MinimaxBot, 
                 # Illegal action, do something?
                 print(f"Illegal action: {p2_action} from Player 2")
                 
+        # Goes true after everyone has done their initial bets
+        everyone_has_bet = True
+
         # Continues the betting loop until players have the same bet
         if(p1_bet == current_bet and p2_bet == current_bet):
             break          
@@ -462,7 +476,11 @@ def main(p1: Union[basicBot, MinimaxBot, MCTS], p2: Union[basicBot, MinimaxBot, 
             case _:
                 # Illegal action, do something?
                 print(f"Illegal action: {p1_action} from Player 1") 
-            
+
+        # Continues the betting loop until players have the same bet
+        if(p1_bet == current_bet and p2_bet == current_bet and everyone_has_bet):
+            break       
+
         p2_action, p2_bet = p2.choose_move("T", MIN_BET, current_bet, pot, p1.bank)
         match p2_action:
             case "check":
@@ -485,7 +503,10 @@ def main(p1: Union[basicBot, MinimaxBot, MCTS], p2: Union[basicBot, MinimaxBot, 
             case _:
                 # Illegal action, do something?
                 print(f"Illegal action: {p2_action} from Player 2")
-                
+
+        # Goes true after everyone has done their initial bets
+        everyone_has_bet = True
+
         # Continues the betting loop until players have the same bet
         if(p1_bet == current_bet and p2_bet == current_bet):
             break
@@ -521,7 +542,11 @@ def main(p1: Union[basicBot, MinimaxBot, MCTS], p2: Union[basicBot, MinimaxBot, 
             case _:
                 # Illegal action, do something?
                 print(f"Illegal action: {p1_action} from Player 1") 
-            
+        
+        # Continues the betting loop until players have the same bet
+        if(p1_bet == current_bet and p2_bet == current_bet and everyone_has_bet):
+            break       
+
         p2_action, p2_bet = p2.choose_move("R", MIN_BET, current_bet, pot, p1.bank)
         match p2_action:
             case "check":
@@ -544,9 +569,12 @@ def main(p1: Union[basicBot, MinimaxBot, MCTS], p2: Union[basicBot, MinimaxBot, 
             case _:
                 # Illegal action, do something?
                 print(f"Illegal action: {p2_action} from Player 2")
-                
+        
+        # Goes true after everyone has done their initial bets
+        everyone_has_bet = True
+
         # Continues the betting loop until players have the same bet
-        if(p1_bet == current_bet and p2_bet == current_bet):
+        if(p1_bet == current_bet and p2_bet == current_bet and everyone_has_bet):
             break
     
     """
