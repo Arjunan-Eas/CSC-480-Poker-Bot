@@ -56,7 +56,7 @@ class MCTS:
         ("raise", $ amount) # Only if current bet != 0 ($ amount is total bet, not just the increase)
         ("fold", 0)         # Anytime
 
-    Your bot has a maximum of 1000000000 seconds to decide what its next move will be
+    bot has a maximum of 15 seconds to decide what its next move will be
     """
     def choose_move(self, game_phase: str, minimum_bet: int, current_bet: int, pot: int) -> tuple[str, int]:
         should_bot_fold = self.should_bot_fold()
@@ -112,9 +112,38 @@ class MCTS:
     def expand(self, Node, start_time):
         if time.time() - start_time > 15:
             return
+        if Node.state == 0: 
+            #preflop ##original code here / code below was modified to add a check for the number of children
+            if len(Node.children) == 0:
+                child = Tree(Node.state+1, Node.bothand, Node.community.copy(), Node)
+                child.community = child.community.union(self.random_card(child.bothand.copy().union(child.community), 3)) 
+                Node.add_child(child)
+                self.expand(child, start_time)
+                return
+            #if children exist, sort by ucb and expand the best one
+            elif len(Node.children) > 0.5 * Node.visits ** 0.75: #factor to control exploration
+                for child in Node.children:
+                    self.ucb(child, Node)
+                max_ucb_child = None
+                for child in Node.children:
+                    if max_ucb_child == None:
+                        max_ucb_child = child
+                    elif child.ucb > max_ucb_child.ucb:
+                        max_ucb_child = child
+                Node = max_ucb_child 
+                self.expand(Node, start_time)
+                return
+            #if children exist but we want to explore more do this
+            else:
+                child = Tree(Node.state + 1, Node.bothand, Node.community.copy(), Node)
+                child.community = child.community.union(self.random_card(child.bothand.copy().union(child.community), 3))
+                Node.add_child(child)
+                self.expand(child, start_time)
+                return
+        
         #if leaf evaluate and propogate
         if Node.state == 3:
-            hand2 = self.random_card(Node.bothand.copy().union(Node.community.copy()), 2)
+            hand2 = self.random_card(Node.bothand.copy().union(Node.community), 2)
             value = poker_main.choose_winner(poker_main.evaluate_hand(Node.bothand.copy().union(Node.community.copy())), poker_main.evaluate_hand(hand2.copy().union(Node.community.copy())))
             if value == -1:
                 value = 1/2
@@ -125,48 +154,41 @@ class MCTS:
                 Node.parent.visits += 1
                 Node = Node.parent
             return
+        
+        #states 1 and 2 only 
         #if no children expand
         if len(Node.children) == 0:
             child = Tree(Node.state+1, Node.bothand, Node.community.copy(), Node)
-            if Node.state == 0:
-                child.community = child.community.union(self.random_card(child.bothand.union(child.community), 3)) 
-            elif Node.state == 1 or Node.state == 2:
-                child.community = child.community.union(self.random_card(child.bothand.union(child.community), 1))
+            child.community = child.community.union(self.random_card(child.bothand.copy().union(child.community), 1))
             Node.add_child(child)
             self.expand(child, start_time)
             return
         #if children exist, sort by ucb and expand the best one
-        elif len(Node.children) > 0.5 * Node.visits ** 0.75: #factor to control exploration
+        elif len(Node.children) > 52 - len(Node.bothand) - len(Node.community):
             for child in Node.children:
                 self.ucb(child, Node)
-            Node.children.sort(key=lambda x: x.ucb, reverse=True)
-            Node = Node.children[0]
+            max_ucb_child = None
+            for child in Node.children:
+                if max_ucb_child == None:
+                    max_ucb_child = child
+                if child.ucb > max_ucb_child.ucb:
+                    max_ucb_child = child
+            Node = max_ucb_child
             self.expand(Node, start_time)
             return
         #if children exist but we want to explore more do this
         else:
             child = Tree(Node.state + 1, Node.bothand, Node.community.copy(), Node)
-            if Node.state == 0:
-                child.community = child.community.union(self.random_card(child.bothand.union(child.community), 3))
-            elif Node.state == 1 or Node.state == 2:
-                child.community = child.community.union(self.random_card(child.bothand.union(child.community), 1))
-            #states 1 and 2 are the pre turn and pre river and dont have so many children states
-            if (Node.state == 1 or Node.state == 2):
-                if len(Node. children) == 52 - len(Node.bothand) - len(Node.community):
-                    Node.children.sort(key=lambda x: x.ucb, reverse=True)
-                    Node = Node.children[0]
-                    self.expand(Node, start_time)
-                    return
-            #pre flop has an incredible large amount of children ~100k so we dont worry about accidentally 
-            # duplicating a child as checking for duplicates is expensive
+            num_children = len(Node.children)
+            child.community = child.community.union(self.random_card(child.bothand.copy().union(child.community), 1))
             Node.add_child(child)
             self.expand(child, start_time)
             return
 
-    
+
 class Tree:
     def __init__(self, state, bothand, community, parent=None):
-        self.children = []
+        self.children = set()
         self.bothand = bothand
         self.community = community
         self.state = state
@@ -178,7 +200,16 @@ class Tree:
     def add_child(self, child):
         child.parent = self
         child.state = self.state + 1
-        self.children.append(child)
+        self.children.add(child)
+
+    def __hash__(self):
+        return hash((frozenset(self.bothand), frozenset(self.community)))
+
+    def __eq__(self, other):
+        if isinstance(other, Tree):
+            return self.bothand == other.bothand and self.community == other.community
+        return False
+        
 
 class Monte_Carlo:
     def random_card(self, hand, num_cards=1):
