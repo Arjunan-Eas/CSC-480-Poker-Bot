@@ -15,7 +15,7 @@ class basicBot:
     """
     Basic bot always either checks or calls
     """
-    def choose_move(self, game_phase: str, minimum_bet: int, current_bet: int, pot: int) -> tuple[str, int]:
+    def choose_move(self, game_phase: str, minimum_bet: int, current_bet: int, pot: int, opponent_bank: int) -> tuple[str, int]:
         if current_bet == 0:
             return "check", 0
         else:

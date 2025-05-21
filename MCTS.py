@@ -57,11 +57,11 @@ class MCTS:
 
     bot has a maximum of 15 seconds to decide what its next move will be
     """
-    def choose_move(self, game_phase: str, minimum_bet: int, current_bet: int, pot: int) -> tuple[str, int]:
+    def choose_move(self, game_phase: str, minimum_bet: int, current_bet: int, pot: int, opponent_bank: int) -> tuple[str, int]:
         win_rate = self.simulate()
         print(f"Model winrate: {win_rate}% at {game_phase}")
-        decision, bet = self.bet_strategy(game_phase, current_bet, pot, win_rate, minimum_bet)
-        print(f"Model decision: {decision}! Bot bets ${bet}")
+        decision, bet = self.bet_strategy(game_phase, current_bet, pot, win_rate, minimum_bet, opponent_bank)
+        print(f"Model decision: {decision}! Bot bets ${bet}\n")
         return decision, bet
 
 
@@ -122,9 +122,18 @@ class MCTS:
 
     # Heuristic function for determining how much to bet
     # TODO: take opponent bets into account and current stage/pot to minimize losses
-    def bet_strategy(self, game_phase: str, current_bet: int, pot: int, win_rate: float, min_bet: int) -> tuple[str, int]:
+    def bet_strategy(self, game_phase: str, current_bet: int, pot: int, win_rate: float, min_bet: int, opponent_bank: int) -> tuple[str, int]:
+        import poker_main
+        # Weight to balance between win % and hole card strength based on the turn. Higher = more reliance on hand strength
+        RISK_FACTOR = 2 # Risk factor goes from 1 - 5. Higher means lower risk
+        phase_weights = {"PF" : 0.75, "F" : 0.5, "T" : 0.25, "R" : 0.15}
         hole_strength = self.evaluate_hole_cards()
-        heuristic = ((win_rate + hole_strength) / 2) ** 3
+        opponent_confidence = current_bet / pot * opponent_bank / poker_main.STARTING_MONEY
+        heuristic = (((win_rate + phase_weights[game_phase] * (hole_strength - win_rate)) - opponent_confidence * (1 - phase_weights[game_phase])) / 2) ** RISK_FACTOR
+        if heuristic < 0:
+            heuristic = 0
+        elif heuristic > 1:
+            heuristic = 1
         decision = "fold"
         bet = 0
 
@@ -144,14 +153,14 @@ class MCTS:
                     decision = "call"  # All-in
             else:
                 bet = int(self.bank * heuristic)
-                if bet <= 0:
+                if bet <= min_bet:
                     bet = 0
                     decision = "check"
                 else:
                     decision = "bet"
 
-        # Medium hand, but strong hole cards
-        elif win_rate > 0.4 and hole_strength > 0.7:
+        # Medium hand, but strong hole cards and early phase
+        elif win_rate > 0.4 and hole_strength > 0.7 and (game_phase == "PF" or game_phase == "F"):
             if current_bet > 0:
                 if self.bank > current_bet:
                     bet = current_bet
@@ -168,6 +177,7 @@ class MCTS:
             decision = "fold"
             bet = 0
 
+        print(f"Heuristic score at {game_phase} is {heuristic}")
         return decision, bet
 
     

@@ -12,8 +12,9 @@ The overall file will deal the necessary cards at each turn.
 """
 from basic_bot import basicBot
 from MCTS import MCTS
+from Min_Max_implementation import MinimaxBot
 import random
-from typing import Optional
+from typing import Optional, Union
 
 # For blind bets
 MIN_BET = 1
@@ -301,21 +302,13 @@ def choose_winner(p0: tuple[int, list[int]], p1: tuple[int, list[int]]) -> int:
         return p0[0] < p1[0]
 
 # Main function, plays a single poker game, returns players banks
-def main(p1_start_money: float = STARTING_MONEY, p2_start_money: float = STARTING_MONEY) -> tuple[float, float]:
-    # Shuffle deck on instantiation
-    deck = Deck()
-
+def main(p1: Union[basicBot, MinimaxBot, MCTS], p2: Union[basicBot, MinimaxBot, MCTS]) -> tuple[float, float]:    
     # Initializes pot
     pot = 0
 
-    # Deals hole cards to each player
-    p1_hand, p2_hand = deck.deal_pre_flop()
-
-    # Instantiate each bot.
-    p1 = MCTS(p1_hand, set(), p1_start_money)
-    p2 = basicBot(p2_hand, set(), p2_start_money)
-    print("Player 1 is the model")
-
+    # Initializes start bank amount for delta comparison
+    p1_start_bank = p1.bank
+    p2_start_bank = p2.bank
 
     """
     Blind stage
@@ -334,10 +327,13 @@ def main(p1_start_money: float = STARTING_MONEY, p2_start_money: float = STARTIN
 
     while True:
         # Player 1 goes first
-        p1_action, p1_bet = p1.choose_move("PF", MIN_BET, current_bet, pot)
+        p1_action, p1_bet = p1.choose_move("PF", MIN_BET, current_bet, pot, p2.bank)
         match p1_action:
             case "check":
                 pass
+            case "call":
+                pot += current_bet
+                p1.change_bank(current_bet * -1)
             case "bet":
                 current_bet = p1_bet
                 pot += p1_bet
@@ -345,12 +341,12 @@ def main(p1_start_money: float = STARTING_MONEY, p2_start_money: float = STARTIN
             case "fold":
                 print("Player 1 folded")
                 p2.change_bank(pot)
-                return p1.bank, p2.bank   
+                return p1.bank, p2.bank, p1_start_bank - p1.bank, p2_start_bank - p2.bank 
             case _:
                 # Illegal action, do something?
                 print(f"Illegal action: {p1_action} from Player 1") 
             
-        p2_action, p2_bet = p2.choose_move("PF", MIN_BET, current_bet, pot)
+        p2_action, p2_bet = p2.choose_move("PF", MIN_BET, current_bet, pot, p1.bank)
         match p2_action:
             case "check":
                 pass
@@ -368,7 +364,7 @@ def main(p1_start_money: float = STARTING_MONEY, p2_start_money: float = STARTIN
             case "fold":
                 print("Player 2 folded")
                 p1.change_bank(pot)
-                return p1.bank, p2.bank
+                return p1.bank, p2.bank, p1_start_bank - p1.bank, p2_start_bank - p2.bank
             case _:
                 # Illegal action, do something?
                 print(f"Illegal action: {p2_action} from Player 2")
@@ -390,10 +386,13 @@ def main(p1_start_money: float = STARTING_MONEY, p2_start_money: float = STARTIN
 
     while True:
         # Player 1 goes first
-        p1_action, p1_bet = p1.choose_move("F", MIN_BET, current_bet, pot)
+        p1_action, p1_bet = p1.choose_move("F", MIN_BET, current_bet, pot, p2.bank)
         match p1_action:
             case "check":
                 pass
+            case "call":
+                pot += current_bet
+                p1.change_bank(current_bet * -1)
             case "bet":
                 current_bet = p1_bet
                 pot += p1_bet
@@ -401,12 +400,12 @@ def main(p1_start_money: float = STARTING_MONEY, p2_start_money: float = STARTIN
             case "fold":
                 print("Player 1 folded")
                 p2.change_bank(pot)
-                return p1.bank, p2.bank   
+                return p1.bank, p2.bank, p1_start_bank - p1.bank, p2_start_bank - p2.bank
             case _:
                 # Illegal action, do something?
                 print(f"Illegal action: {p1_action} from Player 1") 
             
-        p2_action, p2_bet = p2.choose_move("F", MIN_BET, current_bet, pot)
+        p2_action, p2_bet = p2.choose_move("F", MIN_BET, current_bet, pot, p1.bank)
         match p2_action:
             case "check":
                 pass
@@ -424,7 +423,7 @@ def main(p1_start_money: float = STARTING_MONEY, p2_start_money: float = STARTIN
             case "fold":
                 print("Player 2 folded")
                 p1.change_bank(pot)
-                return p1.bank, p2.bank
+                return p1.bank, p2.bank, p1_start_bank - p1.bank, p2_start_bank - p2.bank
             case _:
                 # Illegal action, do something?
                 print(f"Illegal action: {p2_action} from Player 2")
@@ -445,10 +444,13 @@ def main(p1_start_money: float = STARTING_MONEY, p2_start_money: float = STARTIN
 
     while True:
         # Player 1 goes first
-        p1_action, p1_bet = p1.choose_move("T", MIN_BET, current_bet, pot)
+        p1_action, p1_bet = p1.choose_move("T", MIN_BET, current_bet, pot, p2.bank)
         match p1_action:
             case "check":
                 pass
+            case "call":
+                pot += current_bet
+                p1.change_bank(current_bet * -1)
             case "bet":
                 current_bet = p1_bet
                 pot += p1_bet
@@ -456,12 +458,12 @@ def main(p1_start_money: float = STARTING_MONEY, p2_start_money: float = STARTIN
             case "fold":
                 print("Player 1 folded")
                 p2.change_bank(pot)
-                return p1.bank, p2.bank   
+                return p1.bank, p2.bank, p1_start_bank - p1.bank, p2_start_bank - p2.bank
             case _:
                 # Illegal action, do something?
                 print(f"Illegal action: {p1_action} from Player 1") 
             
-        p2_action, p2_bet = p2.choose_move("T", MIN_BET, current_bet, pot)
+        p2_action, p2_bet = p2.choose_move("T", MIN_BET, current_bet, pot, p1.bank)
         match p2_action:
             case "check":
                 pass
@@ -479,7 +481,7 @@ def main(p1_start_money: float = STARTING_MONEY, p2_start_money: float = STARTIN
             case "fold":
                 print("Player 2 folded")
                 p1.change_bank(pot)
-                return p1.bank, p2.bank
+                return p1.bank, p2.bank, p1_start_bank - p1.bank, p2_start_bank - p2.bank
             case _:
                 # Illegal action, do something?
                 print(f"Illegal action: {p2_action} from Player 2")
@@ -501,10 +503,13 @@ def main(p1_start_money: float = STARTING_MONEY, p2_start_money: float = STARTIN
 
     while True:
         # Player 1 goes first
-        p1_action, p1_bet = p1.choose_move("R", MIN_BET, current_bet, pot)
+        p1_action, p1_bet = p1.choose_move("R", MIN_BET, current_bet, pot, p2.bank)
         match p1_action:
             case "check":
                 pass
+            case "call":
+                pot += current_bet
+                p1.change_bank(current_bet * -1)
             case "bet":
                 current_bet = p1_bet
                 pot += p1_bet
@@ -512,12 +517,12 @@ def main(p1_start_money: float = STARTING_MONEY, p2_start_money: float = STARTIN
             case "fold":
                 print("Player 1 folded")
                 p2.change_bank(pot)
-                return p1.bank, p2.bank   
+                return p1.bank, p2.bank, p1_start_bank - p1.bank, p2_start_bank - p2.bank 
             case _:
                 # Illegal action, do something?
                 print(f"Illegal action: {p1_action} from Player 1") 
             
-        p2_action, p2_bet = p2.choose_move("R", MIN_BET, current_bet, pot)
+        p2_action, p2_bet = p2.choose_move("R", MIN_BET, current_bet, pot, p1.bank)
         match p2_action:
             case "check":
                 pass
@@ -535,7 +540,7 @@ def main(p1_start_money: float = STARTING_MONEY, p2_start_money: float = STARTIN
             case "fold":
                 print("Player 2 folded")
                 p1.change_bank(pot)
-                return p1.bank, p2.bank
+                return p1.bank, p2.bank, p1_start_bank - p1.bank, p2_start_bank - p2.bank
             case _:
                 # Illegal action, do something?
                 print(f"Illegal action: {p2_action} from Player 2")
@@ -566,15 +571,134 @@ def main(p1_start_money: float = STARTING_MONEY, p2_start_money: float = STARTIN
     print(f"Community cards: {p1.community_cards}")
     print(f"Player 1 hold cards: {p1.hole_cards} Hand: {breakdown_result(evaluate_hand(p1.hole_cards.union(p1.community_cards)))} Bank: {p1.bank}")
     print(f"Player 2 hold cards: {p2.hole_cards} Hand: {breakdown_result(evaluate_hand(p2.hole_cards.union(p2.community_cards)))} Bank: {p2.bank}")
-    return p1.bank, p2.bank
+
+    # Returns bank and delta
+    return p1.bank, p2.bank, p1_start_bank - p1.bank, p2_start_bank - p2.bank
 
 if __name__ == "__main__":
-    rounds = 4
+    # Number of games to play
+    try:
+        rounds = int(input("How many rounds would you like to play? "))
+    except:
+        print("Enter an integer number of rounds")
+
+    # Starting bank for both players
     p1_bank, p2_bank = STARTING_MONEY, STARTING_MONEY
+
+    # Trackers for both players
+    p1_profit = 0
+    p2_profit = 0
+    delta1 = 0
+    delta2 = 0
+
+    # Choose type of each bot.
+    while True:
+        try:
+            bot1 = input("Which bot is player 1? (Basic, Minimax, MCTS, or GTO) ").lower()
+            match(bot1):
+                case "basic" : break
+                case "minimax" : break
+                case "mcts" : break
+                case "gto" : pass
+                case _: 
+                    print("Please enter a valid bot type")
+                    continue
+        except:
+            print("Please enter one of the bot types")
+
+    while True:
+        try:
+            bot2 = input("Which bot is player 2? (Basic, Minimax, MCTS, or GTO) ").lower()
+            match(bot2):
+                case "basic" : break
+                case "minimax" : break
+                case "mcts" : break
+                case "gto" : pass
+                case _: 
+                    print("Please enter a valid bot type")
+                    continue
+        except:
+            print("Please enter one of the bot types")
+
     for i in range(rounds):
-        p1_bank, p2_bank = main(p1_bank, p2_bank)
+        # Shuffle deck on instantiation
+        deck = Deck()
+
+        # Deals hole cards to each player
+        p1_hand, p2_hand = deck.deal_pre_flop()
+
+        # Swaps who is player 1 and player 2 each round. Ultimately bot1 started as player 1 and will be tracked as so
+        if(i % 2 == 0):
+            match(bot1):
+                case "basic" : 
+                    p1 = basicBot(p1_hand, set(), p2_bank)
+                    print("Player 1 is basic bot")
+                case "minimax" : 
+                    p1 = MinimaxBot(p1_hand, set(), p2_bank)
+                    print("Player 1 is Minimax Bot")
+                case "mcts" : 
+                    p1 = MCTS(p1_hand, set(), p2_bank)
+                    print("Player 1 is MCTS bot")
+                case "gto" : 
+                    print("Player 1 is GTO bot")
+
+            match(bot2):
+                case "basic" : 
+                    p2 = basicBot(p2_hand, set(), p1_bank)
+                    print("Player 2 is basic bot")
+                case "minimax" : 
+                    p2 = MinimaxBot(p2_hand, set(), p1_bank)
+                    print("Player 2 is Minimax bot")
+                case "mcts" : 
+                    p2 = MCTS(p2_hand, set(), p1_bank)
+                    print("Player 2 is MCTS bot")
+                case "gto" : 
+                    print("Player 2 is GTO bot")
+        else:
+            match(bot1):
+                case "basic" : 
+                    p2 = basicBot(p1_hand, set(), p1_bank)
+                    print("Player 2 is basic bot")
+                case "minimax" : 
+                    p2 = MinimaxBot(p1_hand, set(), p1_bank)
+                    print("Player 2 is Minimax bot")
+                case "mcts" : 
+                    p2 = MCTS(p1_hand, set(), p1_bank)
+                    print("Player 2 is MCTS bot")
+                case "gto" : 
+                    print("Player 2 is GTO bot")
+
+            match(bot2):
+                case "basic" : 
+                    p1 = basicBot(p2_hand, set(), p2_bank)
+                    print("Player 1 is basic bot")
+                case "minimax" : 
+                    p1 = MinimaxBot(p2_hand, set(), p2_bank)
+                    print("Player 1 is Minimax Bot")
+                case "mcts" : 
+                    p1 = MCTS(p2_hand, set(), p2_bank)
+                    print("Player 1 is MCTS bot")
+                case "gto" : 
+                    print("Player 1 is GTO bot")
+                                
+        p1_bank, p2_bank, delta1, delta2 = main(p1, p2)
+
+        if(i % 2 == 0):
+            p1_profit += delta2
+            p2_profit += delta1
+        else:
+            p1_profit += delta1
+            p2_profit += delta2
+
         if p1_bank <= 0:
             print("P2 wins!")
+            break
         elif p2_bank <= 0:
             print("P1 wins!")
-        print(f"After round {i}, P1 bank: {p1_bank}  P2 bank: {p2_bank}")
+            break
+        else:
+            print(f"After round {i}, P1 bank: {p1_bank}  P2 bank: {p2_bank}\n")
+    
+    # Profit trackers
+    print(f"Player 1 was {bot1} implementation, and had an average profit of {p1_profit / rounds}.")
+    print(f"Player 2 was {bot2} implementation, and had an average profit of {p2_profit / rounds}.")
