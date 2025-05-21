@@ -1,0 +1,70 @@
+{
+    "SB": {
+      "AA": { "open": 1.0 },  "KK": { "open": 1.0 },  "QQ": { "open": 1.0 },
+      "JJ": { "open": 1.0 },  "TT": { "open": 1.0 },  "99": { "open": 1.0 },
+      "88": { "open": 1.0 },  "77": { "open": 1.0 },  "66": { "open": 1.0 },
+      "55": { "open": 1.0 },  "44": { "open": 1.0 },  "33": { "open": 1.0 },
+      "22": { "open": 1.0 },
+  
+      "AKs":{ "open":1 }, "AQs":{ "open":1 }, "AJs":{ "open":1 }, "ATs":{ "open":1 },
+      "A9s":{ "open":1 }, "A8s":{ "open":1 }, "A7s":{ "open":1 }, "A6s":{ "open":1 },
+      "A5s":{ "open":1 }, "A4s":{ "open":1 }, "A3s":{ "open":1 }, "A2s":{ "open":1 },
+  
+      "KQs":{ "open":1 }, "KJs":{ "open":1 }, "KTs":{ "open":1 }, "K9s":{ "open":1 },
+      "K8s":{ "open":1 }, "K7s":{ "open":1 }, "K6s":{ "open":1 }, "K5s":{ "open":1 },
+      "K4s":{ "open":1 }, "K3s":{ "open":1 }, "K2s":{ "open":1 },
+  
+      "QJs":{ "open":1 }, "QTs":{ "open":1 }, "Q9s":{ "open":1 }, "Q8s":{ "open":1 },
+      "Q7s":{ "open":1 }, "Q6s":{ "open":1 }, "Q5s":{ "open":1 },
+      "Q4s":{ "open":1 }, "Q3s":{ "open":1 }, "Q2s":{ "open":1 },
+  
+      "JTs":{ "open":1 }, "J9s":{ "open":1 }, "J8s":{ "open":1 }, "J7s":{ "open":1 },
+      "J6s":{ "open":1 }, "J5s":{ "open":1 }, "J4s":{ "open":1 }, "J3s":{ "open":1 },
+      "J2s":{ "open":1 },
+  
+      "T9s":{ "open":1 }, "T8s":{ "open":1 }, "T7s":{ "open":1 }, "T6s":{ "open":1 },
+      "T5s":{ "open":1 }, "T4s":{ "open":1 }, "T3s":{ "open":1 }, "T2s":{ "open":1 },
+  
+      "98s":{ "open":1 }, "97s":{ "open":1 }, "96s":{ "open":1 }, "95s":{ "open":1 },
+      "94s":{ "open":1 }, "93s":{ "open":1 }, "92s":{ "open":1 },
+  
+      "87s":{ "open":1 }, "86s":{ "open":1 }, "85s":{ "open":1 },
+      "84s":{ "open":1 }, "83s":{ "open":1 }, "82s":{ "open":1 },
+  
+      "76s":{ "open":1 }, "75s":{ "open":1 }, "74s":{ "open":1 },
+      "73s":{ "open":1 }, "72s":{ "open":1 },
+  
+      "65s":{ "open":1 }, "64s":{ "open":1 }, "63s":{ "open":1 }, "62s":{ "open":1 },
+      "54s":{ "open":1 }, "53s":{ "open":1 }, "52s":{ "open":1 },
+  
+      "43s":{ "open":1 }, "42s":{ "open":1 }, "32s":{ "open":1 },
+  
+      "AKo":{ "open":1 }, "AQo":{ "open":1 }, "AJo":{ "open":1 }, "ATo":{ "open":1 },
+      "A9o":{ "open":1 }, "KQo":{ "open":1 }, "KJo":{ "open":1 }, "KTo":{ "open":1 },
+      "QJo":{ "open":1 }, "QTo":{ "open":1 }, "JTo":{ "open":1 }, "T9o":{ "open":1 },
+      "98o":{ "open":1 }, "87o":{ "open":1 }, "76o":{ "open":1 }, "65o":{ "open":1 }
+    },
+  
+    "BB": {
+      "AA":{"3bet":1},"KK":{"3bet":1},"QQ":{"3bet":1},"JJ":{"3bet":1},"TT":{"3bet":1},
+      "99":{"3bet":1},"88":{"3bet":1},"77":{"3bet":1},"66":{"3bet":1},"55":{"3bet":1},
+      "44":{"3bet":1},"33":{"3bet":1},"22":{"3bet":1},
+  
+      "AKs":{"3bet":1},"AQs":{"3bet":1},"AJs":{"3bet":1},"A5s":{"3bet":1},
+      "A4s":{"3bet":1},"KQs":{"3bet":1},"KJs":{"3bet":1},
+      "QJs":{"3bet":1},"JTs":{"3bet":1},"T9s":{"3bet":1},"98s":{"3bet":1},
+      "87s":{"3bet":1},"76s":{"3bet":1},
+  
+      "AKo":{"3bet":1},
+  
+      "AQo":{"call":1},"AJo":{"call":1},"ATo":{"call":1},"KQo":{"call":1},
+      "KJo":{"call":1},"QJo":{"call":1},"QTo":{"call":1},"JTo":{"call":1},
+      "T9o":{"call":1},"98o":{"call":1},"87o":{"call":1},"A5o":{"call":1},
+      "A4o":{"call":1},
+  
+      "A3s":{"call":1},"A2s":{"call":1},"KTs":{"call":1},"QTs":{"call":1},
+      "J9s":{"call":1},"T8s":{"call":1},"97s":{"call":1},
+      "86s":{"call":1},"65s":{"call":1},"54s":{"call":1}
+    }
+  }
+  
