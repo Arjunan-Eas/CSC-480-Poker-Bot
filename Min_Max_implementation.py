@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from poker_main import evaluate_hand, choose_winner
 import random
 
 # Standard deck of cards
@@ -19,7 +18,7 @@ class MinimaxBot:
     def change_bank(self, amount: int):
         self.bank += amount
 
-    def choose_move(self, game_phase: str, minimum_bet: int, current_bet: int, pot: int) -> tuple[str, int]:
+    def choose_move(self, game_phase: str, minimum_bet: int, current_bet: int, pot: int, opponent_bank: int) -> tuple[str, int]:
         _, best_move = self.minimax(self.hole_cards, self.community_cards, current_bet, pot, True, 2)
 
         if best_move == "fold":
@@ -55,6 +54,7 @@ class MinimaxBot:
         return best_score, best_action
 
     def evaluate_hand_strength(self, hole, community):
+        from poker_main import evaluate_hand
         cards = hole | community
         rank, _ = evaluate_hand(cards)
         return 10 - rank  # Lower rank is stronger
@@ -66,6 +66,7 @@ class MinimaxBot:
             return ["call", "fold"]
 
     def simulate_action(self, hole, community, action, pot, current_bet):
+        from poker_main import evaluate_hand, choose_winner
         if action == "fold":
             return -pot  # Folding loses pot
 
