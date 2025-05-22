@@ -9,6 +9,8 @@ import random
 import time
 import math
 
+# Variable for amount of time the model is allowed to simulate
+SIM_TIME = 10
 
 class MCTS:
     def __init__(self, hand, community, money):
@@ -190,7 +192,7 @@ class MCTS:
             node.ucb = node.wins / node.visits + (2 * (math.log2(parent.visits) / node.visits) ** 0.5)
 
     def expand(self, Node, start_time):
-        if time.time() - start_time > 15:
+        if time.time() - start_time > SIM_TIME:
             return
         if Node.state == 0: 
             #preflop ##original code here / code below was modified to add a check for the number of children

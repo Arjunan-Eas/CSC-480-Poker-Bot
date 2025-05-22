@@ -16,6 +16,9 @@ from Min_Max_implementation import MinimaxBot
 import random
 from typing import Optional, Union
 from GTO import GTOBot
+import statistics
+import matplotlib.pyplot as plt
+import time
 
 # For blind bets
 MIN_BET = 1
@@ -29,7 +32,8 @@ VALUE_TO_RANK = {1: 'A', 2: '2', 3: '3', 4: '4', 5: '5', 6: '6', 7: '7', 8: '8',
 SUITS = ('D', 'C', 'H', 'S')
 # Maps generated result to a human understandable name
 RESULT_TO_HAND = {1 : "Royal flush", 2 : "Straight Flush", 3 : "Four of a kind", 4 : "Full House", 5 : "Flush", 6 : "Straight", 7 : "Three of a kind", 8 : "Two pair", 9 : "Pair", 10 : "High card"}
-
+# Maps class name to string version
+CLASS_TO_NAME = {MCTS : "mcts", basicBot : "basic", MinimaxBot : "minimax", GTOBot : "gto"}
 
 # Deck class
 class Deck:
@@ -302,8 +306,29 @@ def choose_winner(p0: tuple[int, list[int]], p1: tuple[int, list[int]]) -> int:
     else:
         return p0[0] < p1[0]
 
+# Simulates the ending of the game in case of fold
+def simulate_ending(p1: Union[basicBot, MinimaxBot, MCTS, GTOBot], p2: Union[basicBot, MinimaxBot, MCTS, GTOBot], deck: Deck, stage: str) -> int:
+    match(stage):
+        case "PF":
+            community_cards = set()
+            community_cards.union(deck.deal_flop())
+            community_cards.union(deck.deal_turn())
+            community_cards.union(deck.deal_river())
+        case "F":
+            community_cards = p1.community_cards.copy()
+            community_cards.union(deck.deal_turn())
+            community_cards.union(deck.deal_river())           
+        case "T":
+            community_cards = p1.community_cards.copy()
+            community_cards.union(deck.deal_river())
+        case "R":
+            community_cards = p1.community_cards.copy()
+        case _: return
+
+    return choose_winner(evaluate_hand(p1.hole_cards.union(community_cards)), evaluate_hand(p2.hole_cards.union(community_cards)))
+
 # Main function, plays a single poker game, returns players banks
-def main(p1: Union[basicBot, MinimaxBot, MCTS], p2: Union[basicBot, MinimaxBot, MCTS]) -> tuple[float, float]:    
+def main(p1: Union[basicBot, MinimaxBot, MCTS, GTOBot], p2: Union[basicBot, MinimaxBot, MCTS, GTOBot], folding_counter1: int, folding_tracker1: dict, folding_counter2: int, folding_tracker2: dict, p1_wins: int, p2_wins: int, bot1: str, bot2: str):
     # Initializes pot
     pot = 0
 
@@ -325,6 +350,8 @@ def main(p1: Union[basicBot, MinimaxBot, MCTS], p2: Union[basicBot, MinimaxBot, 
     Pre-flop stage
     """
     current_bet = 0
+    p1_bet = None
+    p2_bet = None
 
     while True:
         # Player 1 goes first
@@ -342,14 +369,26 @@ def main(p1: Union[basicBot, MinimaxBot, MCTS], p2: Union[basicBot, MinimaxBot, 
             case "fold":
                 print("Player 1 folded")
                 p2.change_bank(pot)
-                return p1.bank, p2.bank, p1_start_bank - p1.bank, p2_start_bank - p2.bank 
+                # Update folding tracker with if the player folded correctly. Ties count as a correct fold
+                if(CLASS_TO_NAME[p1.__class__] == bot1):
+                    p2_wins += 1
+                    if(simulate_ending(p1, p2, deck, "PF") == 0):
+                        folding_counter1 += 1    # Correct fold
+                    folding_tracker1["PF"] += 1
+                elif(CLASS_TO_NAME[p1.__class__] == bot2):
+                    p1_wins += 1
+                    if(simulate_ending(p1, p2, deck, "PF") == 0):
+                        folding_counter2 += 1    # Correct fold
+                    folding_tracker2["PF"] += 1                    
+                return p1.bank, p2.bank, p1_start_bank - p1.bank, p2_start_bank - p2.bank, folding_counter1, folding_tracker1, folding_counter2, folding_tracker2, p1_wins, p2_wins
             case _:
                 # Illegal action, do something?
                 print(f"Illegal action: {p1_action} from Player 1") 
 
         # Continues the betting loop until players have the same bet
-        if(p1_bet == current_bet and p2_bet == current_bet and everyone_has_bet):
-            break       
+        if(not p2_bet is None):
+            if(p1_bet == current_bet and p2_bet == current_bet and everyone_has_bet):
+                break       
                     
         p2_action, p2_bet = p2.choose_move("PF", MIN_BET, current_bet, pot, p1.bank)
         match p2_action:
@@ -369,7 +408,18 @@ def main(p1: Union[basicBot, MinimaxBot, MCTS], p2: Union[basicBot, MinimaxBot, 
             case "fold":
                 print("Player 2 folded")
                 p1.change_bank(pot)
-                return p1.bank, p2.bank, p1_start_bank - p1.bank, p2_start_bank - p2.bank
+                # Update folding tracker with if the player folded correctly. Ties count as a correct fold
+                if(CLASS_TO_NAME[p2.__class__] == bot1):
+                    p2_wins += 1
+                    if(simulate_ending(p1, p2, deck, "PF") == 1):
+                        folding_counter1 += 1    # Correct fold
+                    folding_tracker1["PF"] += 1
+                elif(CLASS_TO_NAME[p2.__class__] == bot2):
+                    p1_wins += 1
+                    if(simulate_ending(p1, p2, deck, "PF") == 1):
+                        folding_counter2 += 1    # Correct fold
+                    folding_tracker2["PF"] += 1                 
+                return p1.bank, p2.bank, p1_start_bank - p1.bank, p2_start_bank - p2.bank, folding_counter1, folding_tracker1, folding_counter2, folding_tracker2, p1_wins, p2_wins
             case _:
                 # Illegal action, do something?
                 print(f"Illegal action: {p2_action} from Player 2")
@@ -391,6 +441,8 @@ def main(p1: Union[basicBot, MinimaxBot, MCTS], p2: Union[basicBot, MinimaxBot, 
 
     # Resets current bet to 0
     current_bet = 0
+    p1_bet = None
+    p2_bet = None
 
     while True:
         # Player 1 goes first
@@ -408,14 +460,25 @@ def main(p1: Union[basicBot, MinimaxBot, MCTS], p2: Union[basicBot, MinimaxBot, 
             case "fold":
                 print("Player 1 folded")
                 p2.change_bank(pot)
-                return p1.bank, p2.bank, p1_start_bank - p1.bank, p2_start_bank - p2.bank
+                if(CLASS_TO_NAME[p1.__class__] == bot1):
+                    p2_wins += 1
+                    if(simulate_ending(p1, p2, deck, "F") == 0):
+                        folding_counter1 += 1    # Correct fold
+                    folding_tracker1["F"] += 1
+                elif(CLASS_TO_NAME[p1.__class__] == bot2):
+                    p1_wins += 1
+                    if(simulate_ending(p1, p2, deck, "F") == 0):
+                        folding_counter2 += 1    # Correct fold
+                    folding_tracker2["F"] += 1 
+                return p1.bank, p2.bank, p1_start_bank - p1.bank, p2_start_bank - p2.bank, folding_counter1, folding_tracker1, folding_counter2, folding_tracker2, p1_wins, p2_wins
             case _:
                 # Illegal action, do something?
                 print(f"Illegal action: {p1_action} from Player 1") 
             
         # Continues the betting loop until players have the same bet
-        if(p1_bet == current_bet and p2_bet == current_bet and everyone_has_bet):
-            break       
+        if(not p2_bet is None):
+            if(p1_bet == current_bet and p2_bet == current_bet and everyone_has_bet):
+                break         
 
         p2_action, p2_bet = p2.choose_move("F", MIN_BET, current_bet, pot, p1.bank)
         match p2_action:
@@ -435,7 +498,17 @@ def main(p1: Union[basicBot, MinimaxBot, MCTS], p2: Union[basicBot, MinimaxBot, 
             case "fold":
                 print("Player 2 folded")
                 p1.change_bank(pot)
-                return p1.bank, p2.bank, p1_start_bank - p1.bank, p2_start_bank - p2.bank
+                if(CLASS_TO_NAME[p2.__class__] == bot1):
+                    p2_wins += 1
+                    if(simulate_ending(p1, p2, deck, "F") == 1):
+                        folding_counter1 += 1    # Correct fold
+                    folding_tracker1["F"] += 1
+                elif(CLASS_TO_NAME[p2.__class__] == bot2):
+                    p1_wins += 1
+                    if(simulate_ending(p1, p2, deck, "F") == 1):
+                        folding_counter2 += 1    # Correct fold
+                    folding_tracker2["F"] += 1    
+                return p1.bank, p2.bank, p1_start_bank - p1.bank, p2_start_bank - p2.bank, folding_counter1, folding_tracker1, folding_counter2, folding_tracker2, p1_wins, p2_wins
             case _:
                 # Illegal action, do something?
                 print(f"Illegal action: {p2_action} from Player 2")
@@ -456,6 +529,8 @@ def main(p1: Union[basicBot, MinimaxBot, MCTS], p2: Union[basicBot, MinimaxBot, 
 
     # Resets current bet to 0
     current_bet = 0
+    p1_bet = None
+    p2_bet = None
 
     while True:
         # Player 1 goes first
@@ -473,14 +548,25 @@ def main(p1: Union[basicBot, MinimaxBot, MCTS], p2: Union[basicBot, MinimaxBot, 
             case "fold":
                 print("Player 1 folded")
                 p2.change_bank(pot)
-                return p1.bank, p2.bank, p1_start_bank - p1.bank, p2_start_bank - p2.bank
+                if(CLASS_TO_NAME[p1.__class__] == bot1):
+                    p2_wins += 1
+                    if(simulate_ending(p1, p2, deck, "T") == 0):
+                        folding_counter1 += 1    # Correct fold
+                    folding_tracker1["T"] += 1
+                elif(CLASS_TO_NAME[p1.__class__] == bot2):
+                    p1_wins += 1
+                    if(simulate_ending(p1, p2, deck, "T") == 0):
+                        folding_counter2 += 1    # Correct fold
+                    folding_tracker2["T"] += 1 
+                return p1.bank, p2.bank, p1_start_bank - p1.bank, p2_start_bank - p2.bank, folding_counter1, folding_tracker1, folding_counter2, folding_tracker2, p1_wins, p2_wins
             case _:
                 # Illegal action, do something?
                 print(f"Illegal action: {p1_action} from Player 1") 
 
         # Continues the betting loop until players have the same bet
-        if(p1_bet == current_bet and p2_bet == current_bet and everyone_has_bet):
-            break       
+        if(not p2_bet is None):
+            if(p1_bet == current_bet and p2_bet == current_bet and everyone_has_bet):
+                break           
 
         p2_action, p2_bet = p2.choose_move("T", MIN_BET, current_bet, pot, p1.bank)
         match p2_action:
@@ -500,7 +586,17 @@ def main(p1: Union[basicBot, MinimaxBot, MCTS], p2: Union[basicBot, MinimaxBot, 
             case "fold":
                 print("Player 2 folded")
                 p1.change_bank(pot)
-                return p1.bank, p2.bank, p1_start_bank - p1.bank, p2_start_bank - p2.bank
+                if(CLASS_TO_NAME[p2.__class__] == bot1):
+                    p2_wins += 1
+                    if(simulate_ending(p1, p2, deck, "T") == 1):
+                        folding_counter1 += 1    # Correct fold
+                    folding_tracker1["T"] += 1
+                elif(CLASS_TO_NAME[p2.__class__] == bot2):
+                    p1_wins += 1
+                    if(simulate_ending(p1, p2, deck, "T") == 1):
+                        folding_counter2 += 1    # Correct fold
+                    folding_tracker2["T"] += 1    
+                return p1.bank, p2.bank, p1_start_bank - p1.bank, p2_start_bank - p2.bank, folding_counter1, folding_tracker1, folding_counter2, folding_tracker2, p1_wins, p2_wins
             case _:
                 # Illegal action, do something?
                 print(f"Illegal action: {p2_action} from Player 2")
@@ -522,6 +618,8 @@ def main(p1: Union[basicBot, MinimaxBot, MCTS], p2: Union[basicBot, MinimaxBot, 
 
     # Resets current bet to 0
     current_bet = 0
+    p1_bet = None
+    p2_bet = None
 
     while True:
         # Player 1 goes first
@@ -539,14 +637,25 @@ def main(p1: Union[basicBot, MinimaxBot, MCTS], p2: Union[basicBot, MinimaxBot, 
             case "fold":
                 print("Player 1 folded")
                 p2.change_bank(pot)
-                return p1.bank, p2.bank, p1_start_bank - p1.bank, p2_start_bank - p2.bank 
+                if(CLASS_TO_NAME[p1.__class__] == bot1):
+                    p2_wins += 1
+                    if(simulate_ending(p1, p2, deck, "R") == 0):
+                        folding_counter1 += 1    # Correct fold
+                    folding_tracker1["R"] += 1
+                elif(CLASS_TO_NAME[p1.__class__] == bot2):
+                    p1_wins += 1
+                    if(simulate_ending(p1, p2, deck, "R") == 0):
+                        folding_counter2 += 1    # Correct fold
+                    folding_tracker2["R"] += 1 
+                return p1.bank, p2.bank, p1_start_bank - p1.bank, p2_start_bank - p2.bank, folding_counter1, folding_tracker1, folding_counter2, folding_tracker2, p1_wins, p2_wins
             case _:
                 # Illegal action, do something?
                 print(f"Illegal action: {p1_action} from Player 1") 
         
         # Continues the betting loop until players have the same bet
-        if(p1_bet == current_bet and p2_bet == current_bet and everyone_has_bet):
-            break       
+        if(not p2_bet is None):
+            if(p1_bet == current_bet and p2_bet == current_bet and everyone_has_bet):
+                break         
 
         p2_action, p2_bet = p2.choose_move("R", MIN_BET, current_bet, pot, p1.bank)
         match p2_action:
@@ -566,14 +675,24 @@ def main(p1: Union[basicBot, MinimaxBot, MCTS], p2: Union[basicBot, MinimaxBot, 
             case "fold":
                 print("Player 2 folded")
                 p1.change_bank(pot)
-                return p1.bank, p2.bank, p1_start_bank - p1.bank, p2_start_bank - p2.bank
+                if(CLASS_TO_NAME[p2.__class__] == bot1):
+                    p2_wins += 1
+                    if(simulate_ending(p1, p2, deck, "R") == 1):
+                        folding_counter1 += 1    # Correct fold
+                    folding_tracker1["R"] += 1
+                elif(CLASS_TO_NAME[p2.__class__] == bot2):
+                    p1_wins += 1
+                    if(simulate_ending(p1, p2, deck, "R") == 1):
+                        folding_counter2 += 1    # Correct fold
+                    folding_tracker2["R"] += 1    
+                return p1.bank, p2.bank, p1_start_bank - p1.bank, p2_start_bank - p2.bank, folding_counter1, folding_tracker1, folding_counter2, folding_tracker2, p1_wins, p2_wins
             case _:
                 # Illegal action, do something?
                 print(f"Illegal action: {p2_action} from Player 2")
         
         # Goes true after everyone has done their initial bets
         everyone_has_bet = True
-
+        
         # Continues the betting loop until players have the same bet
         if(p1_bet == current_bet and p2_bet == current_bet and everyone_has_bet):
             break
@@ -587,11 +706,21 @@ def main(p1: Union[basicBot, MinimaxBot, MCTS], p2: Union[basicBot, MinimaxBot, 
     if(winner == 1):
         # Player 1 wins
         p1.change_bank(pot)
+        if(CLASS_TO_NAME[p1.__class__] == bot1):
+            p1_wins += 1
+        elif(CLASS_TO_NAME[p1.__class__] == bot2):
+            p2_wins += 1
         print(f"Player 1 wins ${pot}!")
+        
     elif(winner == 0):
         # Player 2 wins
         p2.change_bank(pot)
+        if(CLASS_TO_NAME[p2.__class__] == bot1):
+            p1_wins += 1
+        elif(CLASS_TO_NAME[p2.__class__] == bot2):
+            p2_wins += 1
         print(f"Player 2 wins ${pot}!")
+
     elif(winner == -1):
         # Tie
         p1.change_bank(pot / 2)
@@ -602,23 +731,39 @@ def main(p1: Union[basicBot, MinimaxBot, MCTS], p2: Union[basicBot, MinimaxBot, 
     print(f"Player 2 hold cards: {p2.hole_cards} Hand: {breakdown_result(evaluate_hand(p2.hole_cards.union(p2.community_cards)))} Bank: {p2.bank}")
 
     # Returns bank and delta
-    return p1.bank, p2.bank, p1_start_bank - p1.bank, p2_start_bank - p2.bank
+    return p1.bank, p2.bank, p1_start_bank - p1.bank, p2_start_bank - p2.bank, folding_counter1, folding_tracker1, folding_counter2, folding_tracker2, p1_wins, p2_wins
 
 if __name__ == "__main__":
+    start_time = time.time()
     # Number of games to play
-    try:
-        rounds = int(input("How many rounds would you like to play? "))
-    except:
-        print("Enter an integer number of rounds")
+    while True:
+        try:
+            rounds = int(input("How many rounds would you like to play? "))
+            if(rounds > 0):
+                break
+            else:
+                print("Please enter a positive number of rounds")
+        except:
+            print("Enter an integer number of rounds")
 
     # Starting bank for both players
     p1_bank, p2_bank = STARTING_MONEY, STARTING_MONEY
 
-    # Trackers for both players
-    p1_profit = 0
-    p2_profit = 0
+    # Initializing profit trackers
+    p1_profit = []
+    p2_profit = []
     delta1 = 0
     delta2 = 0
+
+    # Initialize fold trackers
+    folding_counter1 = 0
+    folding_tracker1 = {"PF" : 0, "F" : 0, "T" : 0, "R" : 0}
+    folding_counter2 = 0
+    folding_tracker2 = {"PF" : 0, "F" : 0, "T" : 0, "R" : 0}
+
+    # Win trackers
+    p1_wins = 0
+    p2_wins = 0
 
     # Choose type of each bot.
     while True:
@@ -628,7 +773,7 @@ if __name__ == "__main__":
                 case "basic" : break
                 case "minimax" : break
                 case "mcts" : break
-                case "gto" : pass
+                case "gto" : break
                 case _: 
                     print("Please enter a valid bot type")
                     continue
@@ -642,12 +787,14 @@ if __name__ == "__main__":
                 case "basic" : break
                 case "minimax" : break
                 case "mcts" : break
-                case "gto" : pass
+                case "gto" : break
                 case _: 
                     print("Please enter a valid bot type")
                     continue
         except:
             print("Please enter one of the bot types")
+
+
 
     for i in range(rounds):
         # Shuffle deck on instantiation
@@ -669,6 +816,7 @@ if __name__ == "__main__":
                     p1 = MCTS(p1_hand, set(), p2_bank)
                     print("Player 1 is MCTS bot")
                 case "gto" : 
+                    p1 = GTOBot(p1_hand, set(), p2_bank)
                     print("Player 1 is GTO bot")
 
             match(bot2):
@@ -682,6 +830,7 @@ if __name__ == "__main__":
                     p2 = MCTS(p2_hand, set(), p1_bank)
                     print("Player 2 is MCTS bot")
                 case "gto" : 
+                    p2 = GTOBot(p2_hand, set(), p1_bank)
                     print("Player 2 is GTO bot")
         else:
             match(bot1):
@@ -694,7 +843,8 @@ if __name__ == "__main__":
                 case "mcts" : 
                     p2 = MCTS(p1_hand, set(), p1_bank)
                     print("Player 2 is MCTS bot")
-                case "gto" : 
+                case "gto" :
+                    p2 = GTOBot(p1_hand, set(), p1_bank) 
                     print("Player 2 is GTO bot")
 
             match(bot2):
@@ -708,16 +858,19 @@ if __name__ == "__main__":
                     p1 = MCTS(p2_hand, set(), p2_bank)
                     print("Player 1 is MCTS bot")
                 case "gto" : 
+                    p1 = GTOBot(p2_hand, set(), p2_bank)
                     print("Player 1 is GTO bot")
-                                
-        p1_bank, p2_bank, delta1, delta2 = main(p1, p2)
 
+        # Plays a round             
+        p1_bank, p2_bank, delta1, delta2, folding_counter1, folding_tracker1, folding_counter2, folding_tracker2, p1_wins, p2_wins = main(p1, p2, folding_counter1, folding_tracker1, folding_counter2, folding_tracker2, p1_wins, p2_wins, bot1, bot2)
+
+        # Attributes profit to correct player
         if(i % 2 == 0):
-            p1_profit += delta2
-            p2_profit += delta1
+            p1_profit.append(delta2)
+            p2_profit.append(delta1)
         else:
-            p1_profit += delta1
-            p2_profit += delta2
+            p1_profit.append(delta1)
+            p2_profit.append(delta2)
 
         if p1_bank <= 0:
             print("P2 wins!")
@@ -728,6 +881,55 @@ if __name__ == "__main__":
         else:
             print(f"After round {i}, P1 bank: {p1_bank}  P2 bank: {p2_bank}\n")
     
-    # Profit trackers
-    print(f"Player 1 was {bot1} implementation, and had an average profit of {p1_profit / rounds}.")
-    print(f"Player 2 was {bot2} implementation, and had an average profit of {p2_profit / rounds}.")
+    # Average profit per hand
+    print(f"Player 1 was {bot1} implementation, and had an average profit per hand of {sum(p1_profit) / len(p1_profit)} over {rounds} rounds (Std dev: {statistics.stdev(p1_profit)}). Win rate was: {p1_wins/rounds*100} %")
+    print(f"Player 2 was {bot2} implementation, and had an average profit per hand of {sum(p2_profit) / len(p2_profit)} over {rounds} rounds (Std dev: {statistics.stdev(p2_profit)}). Win rate was: {p2_wins/rounds*100} %\n")
+    
+    # Fold accuracy
+    try:
+        total_folds1 = sum(folding_tracker1.values())
+        print(f"Fold accuracy for {bot1} model: {folding_counter1 / total_folds1 * 100} % of {total_folds1} folds were accurate. Folds per stage: {folding_tracker1}")
+    except:
+        print(f"{bot1} model did not fold")
+    try:
+        total_folds2 = sum(folding_tracker2.values())
+        print(f"Fold accuracy for {bot2} model: {folding_counter2 / total_folds2 * 100} % of {total_folds2} folds were accurate. Folds per stage: {folding_tracker2}")
+    except:
+        print(f"{bot2} model did not fold")
+
+    # Plots profit of player 1
+    x_values = [i for i in range(1, rounds + 1)]
+    p1_rolling_profit = [p1_profit[0]]
+    for i in range(1, rounds):
+        p1_rolling_profit.append(p1_rolling_profit[i - 1] + p1_profit[i])
+
+    # Create subplots: 2 rows, 1 column
+    fig, axes = plt.subplots(2, 1, figsize=(10, 8), sharex=True)
+
+    # Player 1 plot
+    x_values = [i for i in range(1, rounds + 1)]
+    p1_rolling_profit = [p1_profit[0]]
+    for i in range(1, rounds):
+        p1_rolling_profit.append(p1_rolling_profit[i - 1] + p1_profit[i])
+
+    axes[0].plot(x_values, p1_rolling_profit)
+    axes[0].set_ylabel("Rolling profit/loss ($)")
+    axes[0].set_title("Profit over time of Player 1")
+
+    # Player 2 plot
+    p2_rolling_profit = [p2_profit[0]]
+    for i in range(1, rounds):
+        p2_rolling_profit.append(p2_rolling_profit[i - 1] + p2_profit[i])
+
+    axes[1].plot(x_values, p2_rolling_profit)
+    axes[1].set_xlabel("Round")
+    axes[1].set_ylabel("Rolling profit/loss ($)")
+    axes[1].set_title("Profit over time of Player 2")
+
+    # Adjust layout to avoid overlap
+    plt.tight_layout()
+    plt.show()
+
+    end_time = time.time()
+    print(f"Total testing time was: {end_time - start_time} for {rounds} rounds")
+
