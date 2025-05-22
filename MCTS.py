@@ -129,7 +129,7 @@ class MCTS:
     def bet_strategy(self, game_phase: str, current_bet: int, pot: int, win_rate: float, min_bet: int, opponent_bank: int) -> tuple[str, int]:
         import poker_main
         # Weight to balance between win % and hole card strength based on the turn. Higher = more reliance on hand strength
-        RISK_FACTOR = 1.5 # Risk factor goes from 1 - 5. Higher means lower risk
+        RISK_FACTOR = 1.1 # Risk factor goes from 1 - 5. Higher means lower risk
         phase_weights = {"PF" : 0.85, "F" : 0.6, "T" : 0.35, "R" : 0.25}
         hole_strength = self.evaluate_hole_cards()
         opponent_confidence = current_bet / pot * opponent_bank / poker_main.STARTING_MONEY
@@ -142,7 +142,7 @@ class MCTS:
         bet = 0
 
         # Strong hand
-        if win_rate > 0.5:
+        if win_rate > 0.4:
             if current_bet > 0:
                 if self.bank > current_bet:
                     bet = min(int(self.bank * heuristic), max(int(pot * heuristic), current_bet))
@@ -164,7 +164,7 @@ class MCTS:
                     decision = "bet"
 
         # Medium hand, but strong hole cards and early phase
-        elif win_rate > 0.4 and hole_strength > 0.7 and (game_phase == "PF" or game_phase == "F"):
+        elif win_rate > 0.3 and hole_strength > 0.6 and (game_phase == "PF" or game_phase == "F"):
             if current_bet > 0:
                 if self.bank > current_bet:
                     bet = current_bet
