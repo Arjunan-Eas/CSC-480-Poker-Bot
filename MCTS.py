@@ -10,7 +10,7 @@ import time
 import math
 
 # Variable for amount of time the model is allowed to simulate
-SIM_TIME = 5
+SIM_TIME = 0.1
 
 class MCTS:
     def __init__(self, hand, community, money):
@@ -64,6 +64,9 @@ class MCTS:
         print(f"Model winrate: {win_rate}% at {game_phase}")
         decision, bet = self.bet_strategy(game_phase, current_bet, pot, win_rate, minimum_bet, opponent_bank)
         if(bet <= self.bank):
+            # Artificially limits to not allow bot to bet more than opponent has in their bank
+            if(bet > opponent_bank):
+                bet = opponent_bank
             print(f"Model decision: {decision}! Bot bets ${bet}\n")
             return decision, bet
         else:
@@ -129,20 +132,21 @@ class MCTS:
     def bet_strategy(self, game_phase: str, current_bet: int, pot: int, win_rate: float, min_bet: int, opponent_bank: int) -> tuple[str, int]:
         import poker_main
         # Weight to balance between win % and hole card strength based on the turn. Higher = more reliance on hand strength
-        RISK_FACTOR = 1.1 # Risk factor goes from 1 - 5. Higher means lower risk
-        phase_weights = {"PF" : 0.85, "F" : 0.6, "T" : 0.35, "R" : 0.25}
+        RISK_FACTOR = 1.75 # Risk factor goes from 1 - 5. Higher means lower risk
+        phase_weights = {"PF" : 0.13, "F" : 0.24, "T" : 0.61, "R" : 0.80}
         hole_strength = self.evaluate_hole_cards()
         opponent_confidence = current_bet / pot * opponent_bank / poker_main.STARTING_MONEY
-        heuristic = (((win_rate + phase_weights[game_phase] * (hole_strength - win_rate)) - opponent_confidence * (1 - phase_weights[game_phase])) / 2) ** RISK_FACTOR
+        heuristic = (((win_rate + phase_weights[game_phase] * (hole_strength - win_rate)) - opponent_confidence * (1 - phase_weights[game_phase])) / 2)
         if heuristic < 0:
             heuristic = 0
-        elif heuristic > 1:
+        heuristic = heuristic ** RISK_FACTOR
+        if heuristic > 1:
             heuristic = 1
         decision = "fold"
         bet = 0
 
         # Strong hand
-        if win_rate > 0.4:
+        if win_rate > 0.5:
             if current_bet > 0:
                 if self.bank > current_bet:
                     bet = min(int(self.bank * heuristic), max(int(pot * heuristic), current_bet))
@@ -164,7 +168,7 @@ class MCTS:
                     decision = "bet"
 
         # Medium hand, but strong hole cards and early phase
-        elif win_rate > 0.3 and hole_strength > 0.6 and (game_phase == "PF" or game_phase == "F"):
+        elif win_rate > 0.40 and hole_strength > 0.7 and (game_phase == "PF"):
             if current_bet > 0:
                 if self.bank > current_bet:
                     bet = current_bet
