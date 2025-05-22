@@ -342,8 +342,20 @@ def main(p1: Union[basicBot, MinimaxBot, MCTS, GTOBot], p2: Union[basicBot, Mini
     # Blind bets
     pot += 3*MIN_BET
     # Small blind
+    if(p1.bank < MIN_BET):
+        if(CLASS_TO_NAME[p2.__class__] == bot1):
+            p1_wins += 1
+        elif(CLASS_TO_NAME[p2.__class__] == bot2):
+            p2_wins += 1
+        return p1.bank, p2.bank, p1_start_bank - p1.bank, p2_start_bank - p2.bank, folding_counter1, folding_tracker1, folding_counter2, folding_tracker2, p1_wins, p2_wins
     p1.change_bank(MIN_BET * -1)
     # Big Blind
+    if(p2.bank < 2 * MIN_BET):
+        if(CLASS_TO_NAME[p1.__class__] == bot1):
+            p1_wins += 1
+        elif(CLASS_TO_NAME[p1.__class__] == bot2):
+            p2_wins += 1
+        return p1.bank, p2.bank, p1_start_bank - p1.bank, p2_start_bank - p2.bank, folding_counter1, folding_tracker1, folding_counter2, folding_tracker2, p1_wins, p2_wins
     p2.change_bank(2 * MIN_BET * -1)
 
     """
@@ -352,6 +364,7 @@ def main(p1: Union[basicBot, MinimaxBot, MCTS, GTOBot], p2: Union[basicBot, Mini
     current_bet = 0
     p1_bet = None
     p2_bet = None
+    print(f"Pot: ${pot}")
 
     while True:
         # Player 1 goes first
@@ -362,7 +375,7 @@ def main(p1: Union[basicBot, MinimaxBot, MCTS, GTOBot], p2: Union[basicBot, Mini
             case "call":
                 if(p1.bank >= p1_bet):
                     pot += p1_bet
-                    p1.change_bank(current_bet * -1)
+                    p1.change_bank(p1_bet * -1)
                 break
             case "bet":
                 current_bet = p1_bet
@@ -399,7 +412,7 @@ def main(p1: Union[basicBot, MinimaxBot, MCTS, GTOBot], p2: Union[basicBot, Mini
             case "call":
                 if(p2.bank >= p2_bet):
                     pot += p2_bet
-                    p2.change_bank(current_bet * -1)
+                    p2.change_bank(p2_bet * -1)
                 break
             case "raise":
                 current_bet = p2_bet
@@ -447,6 +460,7 @@ def main(p1: Union[basicBot, MinimaxBot, MCTS, GTOBot], p2: Union[basicBot, Mini
     current_bet = 0
     p1_bet = None
     p2_bet = None
+    print(f"Pot: ${pot}")
 
     while True:
         # Player 1 goes first
@@ -457,7 +471,7 @@ def main(p1: Union[basicBot, MinimaxBot, MCTS, GTOBot], p2: Union[basicBot, Mini
             case "call":
                 if(p1.bank >= p1_bet):
                     pot += p1_bet
-                    p1.change_bank(current_bet * -1)
+                    p1.change_bank(p1_bet * -1)
                 break
             case "bet":
                 current_bet = p1_bet
@@ -493,7 +507,7 @@ def main(p1: Union[basicBot, MinimaxBot, MCTS, GTOBot], p2: Union[basicBot, Mini
             case "call":
                 if(p2.bank >= p2_bet):
                     pot += p2_bet
-                    p2.change_bank(current_bet * -1)
+                    p2.change_bank(p2_bet * -1)
                 break
             case "raise":
                 current_bet = p2_bet
@@ -539,6 +553,7 @@ def main(p1: Union[basicBot, MinimaxBot, MCTS, GTOBot], p2: Union[basicBot, Mini
     current_bet = 0
     p1_bet = None
     p2_bet = None
+    print(f"Pot: ${pot}")
 
     while True:
         # Player 1 goes first
@@ -549,7 +564,7 @@ def main(p1: Union[basicBot, MinimaxBot, MCTS, GTOBot], p2: Union[basicBot, Mini
             case "call":
                 if(p1.bank >= p1_bet):
                     pot += p1_bet
-                    p1.change_bank(current_bet * -1)
+                    p1.change_bank(p1_bet * -1)
                 break
             case "bet":
                 current_bet = p1_bet
@@ -585,7 +600,7 @@ def main(p1: Union[basicBot, MinimaxBot, MCTS, GTOBot], p2: Union[basicBot, Mini
             case "call":
                 if(p2.bank >= p2_bet):
                     pot += p2_bet
-                    p2.change_bank(current_bet * -1)
+                    p2.change_bank(p2_bet * -1)
                 break
             case "raise":
                 current_bet = p2_bet
@@ -632,6 +647,7 @@ def main(p1: Union[basicBot, MinimaxBot, MCTS, GTOBot], p2: Union[basicBot, Mini
     current_bet = 0
     p1_bet = None
     p2_bet = None
+    print(f"Pot: ${pot}")
 
     while True:
         # Player 1 goes first
@@ -642,7 +658,7 @@ def main(p1: Union[basicBot, MinimaxBot, MCTS, GTOBot], p2: Union[basicBot, Mini
             case "call":
                 if(p1.bank >= p1_bet):
                     pot += p1_bet
-                    p1.change_bank(current_bet * -1)
+                    p1.change_bank(p1_bet * -1)
                 break
             case "bet":
                 current_bet = p1_bet
@@ -678,7 +694,7 @@ def main(p1: Union[basicBot, MinimaxBot, MCTS, GTOBot], p2: Union[basicBot, Mini
             case "call":
                 if(p2.bank >= p2_bet):
                     pot += p2_bet
-                    p2.change_bank(current_bet * -1)
+                    p2.change_bank(p2_bet * -1)
                 break
             case "raise":
                 current_bet = p2_bet
@@ -717,6 +733,7 @@ def main(p1: Union[basicBot, MinimaxBot, MCTS, GTOBot], p2: Union[basicBot, Mini
     Showdown stage
     """
     # If it reaches this point in the game, both players are still in
+    print(f"Pot: ${pot}")
     winner = choose_winner(evaluate_hand(p1.hole_cards.union(p1.community_cards)), evaluate_hand(p2.hole_cards.union(p2.community_cards)))
 
     if(winner == 1):
@@ -914,8 +931,9 @@ if __name__ == "__main__":
                     p1_game_wins += 1
                 break
             else:
-                print(f"After hand {hand}, P1 bank: {p1_bank}  P2 bank: {p2_bank}\n")
-    
+                print(f"After hand {hand}, {p1.__class__} bank: {p1_bank}  {p2.__class__} bank: {p2_bank}\n")
+
+    print(f"After hand {hand}, {p1.__class__} bank: {p1_bank}  {p2.__class__} bank: {p2_bank}\n")
     # Average profit per hand
     print(f"Player 1 was {bot1} implementation, and had an average profit per hand of {sum(p1_profit) / len(p1_profit)} over {total_hands} hands (Std dev: {statistics.stdev(p1_profit)})")
     print(f"Player 2 was {bot2} implementation, and had an average profit per hand of {sum(p2_profit) / len(p2_profit)} over {total_hands} hands (Std dev: {statistics.stdev(p2_profit)})\n")
