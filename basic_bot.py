@@ -19,7 +19,13 @@ class basicBot:
         if current_bet == 0:
             return "check", 0
         else:
-            return "call", current_bet
+            if(current_bet <= self.bank):
+                return "call", current_bet
+            else:
+                if(self.bank >= 0):
+                    return "call", self.bank
+                else:
+                    return "fold", 0
     
     # Setter for modifying player bank
     def change_bank(self, amount: int):

@@ -10,7 +10,7 @@ import time
 import math
 
 # Variable for amount of time the model is allowed to simulate
-SIM_TIME = 10
+SIM_TIME = 5
 
 class MCTS:
     def __init__(self, hand, community, money):
@@ -63,8 +63,11 @@ class MCTS:
         win_rate = self.simulate()
         print(f"Model winrate: {win_rate}% at {game_phase}")
         decision, bet = self.bet_strategy(game_phase, current_bet, pot, win_rate, minimum_bet, opponent_bank)
-        print(f"Model decision: {decision}! Bot bets ${bet}\n")
-        return decision, bet
+        if(bet <= self.bank):
+            print(f"Model decision: {decision}! Bot bets ${bet}\n")
+            return decision, bet
+        else:
+            return decision, self.bank
 
 
     
@@ -88,7 +91,7 @@ class MCTS:
         root = Tree(state, self.hole_cards.copy(), communitycopy)
         Node = root
 
-        while time.time() - start_time < 15:
+        while time.time() - start_time < SIM_TIME:
             self.expand(Node, start_time)
         # print(str(root.visits) + " iterations and " + str(root.wins) + " wins")
         return root.wins / root.visits
@@ -123,12 +126,11 @@ class MCTS:
 
 
     # Heuristic function for determining how much to bet
-    # TODO: take opponent bets into account and current stage/pot to minimize losses
     def bet_strategy(self, game_phase: str, current_bet: int, pot: int, win_rate: float, min_bet: int, opponent_bank: int) -> tuple[str, int]:
         import poker_main
         # Weight to balance between win % and hole card strength based on the turn. Higher = more reliance on hand strength
-        RISK_FACTOR = 2 # Risk factor goes from 1 - 5. Higher means lower risk
-        phase_weights = {"PF" : 0.75, "F" : 0.5, "T" : 0.25, "R" : 0.15}
+        RISK_FACTOR = 1.5 # Risk factor goes from 1 - 5. Higher means lower risk
+        phase_weights = {"PF" : 0.85, "F" : 0.6, "T" : 0.35, "R" : 0.25}
         hole_strength = self.evaluate_hole_cards()
         opponent_confidence = current_bet / pot * opponent_bank / poker_main.STARTING_MONEY
         heuristic = (((win_rate + phase_weights[game_phase] * (hole_strength - win_rate)) - opponent_confidence * (1 - phase_weights[game_phase])) / 2) ** RISK_FACTOR

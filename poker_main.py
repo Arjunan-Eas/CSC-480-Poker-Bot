@@ -360,8 +360,10 @@ def main(p1: Union[basicBot, MinimaxBot, MCTS, GTOBot], p2: Union[basicBot, Mini
             case "check":
                 pass
             case "call":
-                pot += current_bet
-                p1.change_bank(current_bet * -1)
+                if(p1.bank >= p1_bet):
+                    pot += p1_bet
+                    p1.change_bank(current_bet * -1)
+                break
             case "bet":
                 current_bet = p1_bet
                 pot += p1_bet
@@ -387,16 +389,18 @@ def main(p1: Union[basicBot, MinimaxBot, MCTS, GTOBot], p2: Union[basicBot, Mini
 
         # Continues the betting loop until players have the same bet
         if(not p2_bet is None):
-            if(p1_bet == current_bet and p2_bet == current_bet and everyone_has_bet):
+            if((p1_bet == current_bet and p2_bet == current_bet or (p1.bank == 0 or p2.bank == 0)) and everyone_has_bet):
                 break       
                     
         p2_action, p2_bet = p2.choose_move("PF", MIN_BET, current_bet, pot, p1.bank)
         match p2_action:
             case "check":
-                pass
+                break
             case "call":
-                pot += current_bet
-                p2.change_bank(current_bet * -1)
+                if(p2.bank >= p2_bet):
+                    pot += p2_bet
+                    p2.change_bank(current_bet * -1)
+                break
             case "raise":
                 current_bet = p2_bet
                 pot += p2_bet
@@ -428,7 +432,7 @@ def main(p1: Union[basicBot, MinimaxBot, MCTS, GTOBot], p2: Union[basicBot, Mini
         everyone_has_bet = True
 
         # Continues the betting loop until players have the same bet
-        if(p1_bet == current_bet and p2_bet == current_bet):
+        if((p1_bet == current_bet and p2_bet == current_bet) or (p1.bank == 0 or p2.bank == 0)):
             break
 
     """
@@ -451,8 +455,10 @@ def main(p1: Union[basicBot, MinimaxBot, MCTS, GTOBot], p2: Union[basicBot, Mini
             case "check":
                 pass
             case "call":
-                pot += current_bet
-                p1.change_bank(current_bet * -1)
+                if(p1.bank >= p1_bet):
+                    pot += p1_bet
+                    p1.change_bank(current_bet * -1)
+                break
             case "bet":
                 current_bet = p1_bet
                 pot += p1_bet
@@ -477,7 +483,7 @@ def main(p1: Union[basicBot, MinimaxBot, MCTS, GTOBot], p2: Union[basicBot, Mini
             
         # Continues the betting loop until players have the same bet
         if(not p2_bet is None):
-            if(p1_bet == current_bet and p2_bet == current_bet and everyone_has_bet):
+            if((p1_bet == current_bet and p2_bet == current_bet or (p1.bank == 0 or p2.bank == 0)) and everyone_has_bet):
                 break         
 
         p2_action, p2_bet = p2.choose_move("F", MIN_BET, current_bet, pot, p1.bank)
@@ -485,8 +491,10 @@ def main(p1: Union[basicBot, MinimaxBot, MCTS, GTOBot], p2: Union[basicBot, Mini
             case "check":
                 pass
             case "call":
-                pot += current_bet
-                p2.change_bank(current_bet * -1)
+                if(p2.bank >= p2_bet):
+                    pot += p2_bet
+                    p2.change_bank(current_bet * -1)
+                break
             case "raise":
                 current_bet = p2_bet
                 pot += p2_bet
@@ -517,7 +525,7 @@ def main(p1: Union[basicBot, MinimaxBot, MCTS, GTOBot], p2: Union[basicBot, Mini
         everyone_has_bet = True
 
         # Continues the betting loop until players have the same bet
-        if(p1_bet == current_bet and p2_bet == current_bet):
+        if((p1_bet == current_bet and p2_bet == current_bet) or (p1.bank == 0 or p2.bank == 0)):
             break          
     """
     Turn Stage
@@ -539,8 +547,10 @@ def main(p1: Union[basicBot, MinimaxBot, MCTS, GTOBot], p2: Union[basicBot, Mini
             case "check":
                 pass
             case "call":
-                pot += current_bet
-                p1.change_bank(current_bet * -1)
+                if(p1.bank >= p1_bet):
+                    pot += p1_bet
+                    p1.change_bank(current_bet * -1)
+                break
             case "bet":
                 current_bet = p1_bet
                 pot += p1_bet
@@ -565,7 +575,7 @@ def main(p1: Union[basicBot, MinimaxBot, MCTS, GTOBot], p2: Union[basicBot, Mini
 
         # Continues the betting loop until players have the same bet
         if(not p2_bet is None):
-            if(p1_bet == current_bet and p2_bet == current_bet and everyone_has_bet):
+            if((p1_bet == current_bet and p2_bet == current_bet or (p1.bank == 0 or p2.bank == 0)) and everyone_has_bet):
                 break           
 
         p2_action, p2_bet = p2.choose_move("T", MIN_BET, current_bet, pot, p1.bank)
@@ -573,8 +583,10 @@ def main(p1: Union[basicBot, MinimaxBot, MCTS, GTOBot], p2: Union[basicBot, Mini
             case "check":
                 pass
             case "call":
-                pot += current_bet
-                p2.change_bank(current_bet * -1)
+                if(p2.bank >= p2_bet):
+                    pot += p2_bet
+                    p2.change_bank(current_bet * -1)
+                break
             case "raise":
                 current_bet = p2_bet
                 pot += p2_bet
@@ -605,7 +617,7 @@ def main(p1: Union[basicBot, MinimaxBot, MCTS, GTOBot], p2: Union[basicBot, Mini
         everyone_has_bet = True
 
         # Continues the betting loop until players have the same bet
-        if(p1_bet == current_bet and p2_bet == current_bet):
+        if((p1_bet == current_bet and p2_bet == current_bet) or (p1.bank == 0 or p2.bank == 0)):
             break
 
     """
@@ -628,8 +640,10 @@ def main(p1: Union[basicBot, MinimaxBot, MCTS, GTOBot], p2: Union[basicBot, Mini
             case "check":
                 pass
             case "call":
-                pot += current_bet
-                p1.change_bank(current_bet * -1)
+                if(p1.bank >= p1_bet):
+                    pot += p1_bet
+                    p1.change_bank(current_bet * -1)
+                break
             case "bet":
                 current_bet = p1_bet
                 pot += p1_bet
@@ -654,16 +668,18 @@ def main(p1: Union[basicBot, MinimaxBot, MCTS, GTOBot], p2: Union[basicBot, Mini
         
         # Continues the betting loop until players have the same bet
         if(not p2_bet is None):
-            if(p1_bet == current_bet and p2_bet == current_bet and everyone_has_bet):
-                break         
+            if((p1_bet == current_bet and p2_bet == current_bet or (p1.bank == 0 or p2.bank == 0)) and everyone_has_bet):
+                break        
 
         p2_action, p2_bet = p2.choose_move("R", MIN_BET, current_bet, pot, p1.bank)
         match p2_action:
             case "check":
                 pass
             case "call":
-                pot += current_bet
-                p2.change_bank(current_bet * -1)
+                if(p2.bank >= p2_bet):
+                    pot += p2_bet
+                    p2.change_bank(current_bet * -1)
+                break
             case "raise":
                 current_bet = p2_bet
                 pot += p2_bet
@@ -694,7 +710,7 @@ def main(p1: Union[basicBot, MinimaxBot, MCTS, GTOBot], p2: Union[basicBot, Mini
         everyone_has_bet = True
         
         # Continues the betting loop until players have the same bet
-        if(p1_bet == current_bet and p2_bet == current_bet and everyone_has_bet):
+        if((p1_bet == current_bet and p2_bet == current_bet) or (p1.bank == 0 or p2.bank == 0)):
             break
     
     """
@@ -738,7 +754,7 @@ if __name__ == "__main__":
     # Number of games to play
     while True:
         try:
-            rounds = int(input("How many rounds would you like to play? "))
+            rounds = int(input("How many full games would you like to play (goes until one player loses)? "))
             if(rounds > 0):
                 break
             else:
@@ -794,96 +810,118 @@ if __name__ == "__main__":
         except:
             print("Please enter one of the bot types")
 
-
-
+    total_hands = 0
+    hand = 0
+    p1_game_wins = 0
+    p2_game_wins = 0
     for i in range(rounds):
-        # Shuffle deck on instantiation
-        deck = Deck()
+        # Counter for number of hands played per game
+        hand = 0
+        p1_bank = STARTING_MONEY
+        p2_bank = STARTING_MONEY
+        # Plays until one player is bankrupt    
+        while True:
+            # Shuffle deck on instantiation
+            deck = Deck()
 
-        # Deals hole cards to each player
-        p1_hand, p2_hand = deck.deal_pre_flop()
+            # Deals hole cards to each player
+            p1_hand, p2_hand = deck.deal_pre_flop()
 
-        # Swaps who is player 1 and player 2 each round. Ultimately bot1 started as player 1 and will be tracked as so
-        if(i % 2 == 0):
-            match(bot1):
-                case "basic" : 
-                    p1 = basicBot(p1_hand, set(), p2_bank)
-                    print("Player 1 is basic bot")
-                case "minimax" : 
-                    p1 = MinimaxBot(p1_hand, set(), p2_bank)
-                    print("Player 1 is Minimax Bot")
-                case "mcts" : 
-                    p1 = MCTS(p1_hand, set(), p2_bank)
-                    print("Player 1 is MCTS bot")
-                case "gto" : 
-                    p1 = GTOBot(p1_hand, set(), p2_bank)
-                    print("Player 1 is GTO bot")
+            # Swaps who is player 1 and player 2 each round. Ultimately bot1 started as player 1 and will be tracked as so
+            if(hand % 2 == 0):
+                match(bot1):
+                    case "basic" : 
+                        p1 = basicBot(p1_hand, set(), p2_bank)
+                        print("Player 1 is basic bot")
+                    case "minimax" : 
+                        p1 = MinimaxBot(p1_hand, set(), p2_bank)
+                        print("Player 1 is Minimax Bot")
+                    case "mcts" : 
+                        p1 = MCTS(p1_hand, set(), p2_bank)
+                        print("Player 1 is MCTS bot")
+                    case "gto" : 
+                        p1 = GTOBot(p1_hand, set(), p2_bank)
+                        print("Player 1 is GTO bot")
 
-            match(bot2):
-                case "basic" : 
-                    p2 = basicBot(p2_hand, set(), p1_bank)
-                    print("Player 2 is basic bot")
-                case "minimax" : 
-                    p2 = MinimaxBot(p2_hand, set(), p1_bank)
-                    print("Player 2 is Minimax bot")
-                case "mcts" : 
-                    p2 = MCTS(p2_hand, set(), p1_bank)
-                    print("Player 2 is MCTS bot")
-                case "gto" : 
-                    p2 = GTOBot(p2_hand, set(), p1_bank)
-                    print("Player 2 is GTO bot")
-        else:
-            match(bot1):
-                case "basic" : 
-                    p2 = basicBot(p1_hand, set(), p1_bank)
-                    print("Player 2 is basic bot")
-                case "minimax" : 
-                    p2 = MinimaxBot(p1_hand, set(), p1_bank)
-                    print("Player 2 is Minimax bot")
-                case "mcts" : 
-                    p2 = MCTS(p1_hand, set(), p1_bank)
-                    print("Player 2 is MCTS bot")
-                case "gto" :
-                    p2 = GTOBot(p1_hand, set(), p1_bank) 
-                    print("Player 2 is GTO bot")
+                match(bot2):
+                    case "basic" : 
+                        p2 = basicBot(p2_hand, set(), p1_bank)
+                        print("Player 2 is basic bot")
+                    case "minimax" : 
+                        p2 = MinimaxBot(p2_hand, set(), p1_bank)
+                        print("Player 2 is Minimax bot")
+                    case "mcts" : 
+                        p2 = MCTS(p2_hand, set(), p1_bank)
+                        print("Player 2 is MCTS bot")
+                    case "gto" : 
+                        p2 = GTOBot(p2_hand, set(), p1_bank)
+                        print("Player 2 is GTO bot")
+            else:
+                match(bot1):
+                    case "basic" : 
+                        p2 = basicBot(p1_hand, set(), p1_bank)
+                        print("Player 2 is basic bot")
+                    case "minimax" : 
+                        p2 = MinimaxBot(p1_hand, set(), p1_bank)
+                        print("Player 2 is Minimax bot")
+                    case "mcts" : 
+                        p2 = MCTS(p1_hand, set(), p1_bank)
+                        print("Player 2 is MCTS bot")
+                    case "gto" :
+                        p2 = GTOBot(p1_hand, set(), p1_bank) 
+                        print("Player 2 is GTO bot")
 
-            match(bot2):
-                case "basic" : 
-                    p1 = basicBot(p2_hand, set(), p2_bank)
-                    print("Player 1 is basic bot")
-                case "minimax" : 
-                    p1 = MinimaxBot(p2_hand, set(), p2_bank)
-                    print("Player 1 is Minimax Bot")
-                case "mcts" : 
-                    p1 = MCTS(p2_hand, set(), p2_bank)
-                    print("Player 1 is MCTS bot")
-                case "gto" : 
-                    p1 = GTOBot(p2_hand, set(), p2_bank)
-                    print("Player 1 is GTO bot")
+                match(bot2):
+                    case "basic" : 
+                        p1 = basicBot(p2_hand, set(), p2_bank)
+                        print("Player 1 is basic bot")
+                    case "minimax" : 
+                        p1 = MinimaxBot(p2_hand, set(), p2_bank)
+                        print("Player 1 is Minimax Bot")
+                    case "mcts" : 
+                        p1 = MCTS(p2_hand, set(), p2_bank)
+                        print("Player 1 is MCTS bot")
+                    case "gto" : 
+                        p1 = GTOBot(p2_hand, set(), p2_bank)
+                        print("Player 1 is GTO bot")
 
-        # Plays a round             
-        p1_bank, p2_bank, delta1, delta2, folding_counter1, folding_tracker1, folding_counter2, folding_tracker2, p1_wins, p2_wins = main(p1, p2, folding_counter1, folding_tracker1, folding_counter2, folding_tracker2, p1_wins, p2_wins, bot1, bot2)
+            # Plays a round             
+            p1_bank, p2_bank, delta1, delta2, folding_counter1, folding_tracker1, folding_counter2, folding_tracker2, p1_wins, p2_wins = main(p1, p2, folding_counter1, folding_tracker1, folding_counter2, folding_tracker2, p1_wins, p2_wins, bot1, bot2)
 
-        # Attributes profit to correct player
-        if(i % 2 == 0):
-            p1_profit.append(delta2)
-            p2_profit.append(delta1)
-        else:
-            p1_profit.append(delta1)
-            p2_profit.append(delta2)
+            # Attributes profit to correct player
+            if(hand % 2 == 0):
+                p1_profit.append(delta2)
+                p2_profit.append(delta1)
+            else:
+                p1_profit.append(delta1)
+                p2_profit.append(delta2)
 
-        if p1_bank <= 0:
-            print("P2 wins!")
-            break
-        elif p2_bank <= 0:
-            print("P1 wins!")
-            break
-        else:
-            print(f"After round {i}, P1 bank: {p1_bank}  P2 bank: {p2_bank}\n")
+            # Increments number of hands played for this game
+            hand += 1
+            total_hands += 1
+            if p1_bank <= 0:
+                print("P2 wins!")
+                if(hand % 2 == 0):
+                    p1_game_wins += 1
+                else:
+                    p2_game_wins += 1
+                break
+            elif p2_bank <= 0:
+                print("P1 wins!")
+                if(hand % 2 == 0):
+                    p2_game_wins += 1
+                else:
+                    p1_game_wins += 1
+                break
+            else:
+                print(f"After hand {hand}, P1 bank: {p1_bank}  P2 bank: {p2_bank}\n")
     
     # Average profit per hand
-    print(f"Player 1 was {bot1} implementation, and had an average profit per hand of {sum(p1_profit) / len(p1_profit)} over {rounds} rounds (Std dev: {statistics.stdev(p1_profit)}). Win rate was: {p1_wins/rounds*100} %")
-    print(f"Player 2 was {bot2} implementation, and had an average profit per hand of {sum(p2_profit) / len(p2_profit)} over {rounds} rounds (Std dev: {statistics.stdev(p2_profit)}). Win rate was: {p2_wins/rounds*100} %\n")
+    print(f"Player 1 was {bot1} implementation, and had an average profit per hand of {sum(p1_profit) / len(p1_profit)} over {total_hands} hands (Std dev: {statistics.stdev(p1_profit)})")
+    print(f"Player 2 was {bot2} implementation, and had an average profit per hand of {sum(p2_profit) / len(p2_profit)} over {total_hands} hands (Std dev: {statistics.stdev(p2_profit)})\n")
+    # Game win rate and hand win rate
+    print(f"Games played: {rounds}. {bot1} game win rate: {p1_game_wins/rounds*100} %  Hand win rate: {p1_wins/total_hands*100} %")
+    print(f"Games played: {rounds}. {bot2} game win rate: {p2_game_wins/rounds*100} %  Hand win rate: {p2_wins/total_hands*100} %\n")
     
     # Fold accuracy
     try:
@@ -898,18 +936,18 @@ if __name__ == "__main__":
         print(f"{bot2} model did not fold")
 
     # Plots profit of player 1
-    x_values = [i for i in range(1, rounds + 1)]
+    x_values = [i for i in range(1, total_hands + 1)]
     p1_rolling_profit = [p1_profit[0]]
-    for i in range(1, rounds):
+    for i in range(1, total_hands):
         p1_rolling_profit.append(p1_rolling_profit[i - 1] + p1_profit[i])
 
     # Create subplots: 2 rows, 1 column
     fig, axes = plt.subplots(2, 1, figsize=(10, 8), sharex=True)
 
     # Player 1 plot
-    x_values = [i for i in range(1, rounds + 1)]
+    x_values = [i for i in range(1, total_hands + 1)]
     p1_rolling_profit = [p1_profit[0]]
-    for i in range(1, rounds):
+    for i in range(1, total_hands):
         p1_rolling_profit.append(p1_rolling_profit[i - 1] + p1_profit[i])
 
     axes[0].plot(x_values, p1_rolling_profit)
@@ -918,18 +956,19 @@ if __name__ == "__main__":
 
     # Player 2 plot
     p2_rolling_profit = [p2_profit[0]]
-    for i in range(1, rounds):
+    for i in range(1, total_hands):
         p2_rolling_profit.append(p2_rolling_profit[i - 1] + p2_profit[i])
 
     axes[1].plot(x_values, p2_rolling_profit)
     axes[1].set_xlabel("Round")
     axes[1].set_ylabel("Rolling profit/loss ($)")
     axes[1].set_title("Profit over time of Player 2")
-
+    
+    end_time = time.time()
+    print(f"Total testing time was: {end_time - start_time} for {rounds} game and {total_hands} hands")
+    
     # Adjust layout to avoid overlap
     plt.tight_layout()
     plt.show()
 
-    end_time = time.time()
-    print(f"Total testing time was: {end_time - start_time} for {rounds} rounds")
 
