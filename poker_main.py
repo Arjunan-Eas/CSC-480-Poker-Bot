@@ -12,7 +12,8 @@ The overall file will deal the necessary cards at each turn.
 """
 from basic_bot import basicBot
 from MCTS import MCTS
-from Min_Max_implementation import MinimaxBot
+# from Min_Max_implementation import MinimaxBot
+from Minimax import MinimaxBot
 import random
 from typing import Optional, Union
 from GTO import GTOBot
