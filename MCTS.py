@@ -135,7 +135,10 @@ class MCTS:
         RISK_FACTOR = 1 # Risk factor goes from 1 - 5. Higher means lower risk
         phase_weights = {"PF" : 0.25, "F" : 0.55, "T" : 0.80, "R" : 0.99}
         hole_strength = self.evaluate_hole_cards()
-        opponent_confidence = current_bet / pot * opponent_bank / poker_main.STARTING_MONEY
+        try:
+            opponent_confidence = current_bet / pot * opponent_bank / poker_main.STARTING_MONEY
+        except:
+            opponent_confidence = 0
         heuristic = (((phase_weights[game_phase] * (win_rate)) + (hole_strength - opponent_confidence) * (1 - phase_weights[game_phase])) / 2)
         # heuristic = (((win_rate + phase_weights[game_phase] * (hole_strength - win_rate)) - opponent_confidence * (1 - phase_weights[game_phase])) / 2)
         if heuristic < 0:
