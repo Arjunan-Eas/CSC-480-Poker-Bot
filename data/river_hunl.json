@@ -1,0 +1,17 @@
+{
+    "SB": {
+      "very_strong": {"bet": 0.8, "check": 0.2},
+      "strong": {"bet": 0.55, "check": 0.45},
+      "medium": {"check": 0.8, "bet": 0.1, "fold": 0.1},
+      "weak": {"fold": 0.65, "check": 0.35},
+      "very_weak": {"fold": 0.99, "check": 0.01}
+    },
+    "BB": {
+      "very_strong": {"raise": 0.7, "call": 0.25, "fold": 0.05},
+      "strong": {"call": 0.7, "raise": 0.15, "fold": 0.15},
+      "medium": {"call": 0.55, "fold": 0.4, "raise": 0.05},
+      "weak": {"fold": 0.85, "call": 0.15},
+      "very_weak": {"fold": 0.995, "call": 0.005}
+    }
+  }
+  
